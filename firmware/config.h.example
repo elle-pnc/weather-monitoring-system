@@ -1,0 +1,24 @@
+/*
+ * Configuration File
+ * Copy this file to config.h and update with your credentials
+ */
+
+#ifndef CONFIG_H
+#define CONFIG_H
+
+// WiFi Credentials
+#define WIFI_SSID "YOUR_WIFI_SSID"
+#define WIFI_PASSWORD "YOUR_WIFI_PASSWORD"
+
+// MQTT Broker Configuration
+// For HiveMQ Cloud: broker.hivemq.com, port 1883
+// For local Mosquitto: your-local-ip, port 1883
+#define MQTT_BROKER "broker.hivemq.com"
+#define MQTT_PORT 1883
+
+// MQTT Authentication (leave empty if not required)
+#define MQTT_USER ""
+#define MQTT_PASSWORD ""
+
+#endif
+

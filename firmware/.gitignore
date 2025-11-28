@@ -1,0 +1,10 @@
+# Configuration file with sensitive data
+config.h
+
+# Arduino build files
+*.elf
+*.bin
+*.hex
+build/
+.vscode/
+

@@ -1,0 +1,29 @@
+// Firebase Configuration
+// Copy this file to firebase-config.js and fill in your Firebase project credentials
+// Get these from: Firebase Console → Project Settings → General → Your apps
+
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "weather-management-system.firebaseapp.com",
+  databaseURL: "https://weather-management-system-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "weather-management-system",
+  storageBucket: "weather-management-system.firebasestorage.app",
+  messagingSenderId: "521640129814",
+  appId: "YOUR_APP_ID",
+  measurementId: "YOUR_MEASUREMENT_ID"
+};
+
+// Setup Instructions:
+// 1. Go to Firebase Console: https://console.firebase.google.com/
+// 2. Select your project: Weather-Management-System
+// 3. Go to Project Settings (gear icon) → General tab
+// 4. Scroll down to "Your apps" section
+// 5. If no web app exists, click "Add app" → Web (</>) icon
+// 6. Copy the config values (apiKey, appId, etc.)
+// 7. Enable Realtime Database:
+//    - Go to Build → Realtime Database
+//    - Click "Create Database"
+//    - Choose location (same as your project)
+//    - Start in "Test mode" (for development) or set up security rules
+// 8. Copy this file to firebase-config.js and fill in the values above
+

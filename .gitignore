@@ -1,0 +1,65 @@
+# Sensitive Configuration Files
+firmware/config.h
+firebase-config.js
+*.env
+.env.local
+
+# Arduino/ESP32 Build Files
+*.elf
+*.bin
+*.hex
+build/
+.vscode/
+.arduino/
+*.prefs
+
+# IDE Files
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Node modules (if any)
+node_modules/
+package-lock.json
+yarn.lock
+
+# Logs
+*.log
+logs/
+
+# OS Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Desktop.ini
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.cache
+
+# Documentation builds
+docs/_build/
+*.pdf
+!docs/*.pdf
+
+# Video files (demo videos - too large for git)
+*.mp4
+*.mov
+*.avi
+
+# Photos (prototype photos - add to git manually if needed)
+# Uncomment if you want to ignore photos
+# *.jpg
+# *.jpeg
+# *.png
+# !docs/*.png
+# !docs/*.jpg
+

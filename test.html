@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MQTT Test Publisher - Weather Monitoring</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/mqtt/dist/mqtt.min.js"></script>
+    <style>
+        .test-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        .test-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .test-header h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+        .test-header p {
+            color: var(--text-secondary);
+        }
+        .test-card {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-base);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .test-card h2 {
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        .form-input {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--bg-base);
+            border: 1px solid var(--border-base);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-family: var(--font-mono);
+            font-size: 0.875rem;
+        }
+        .form-input:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+        }
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-family: var(--font-sans);
+            font-weight: 500;
+            cursor: pointer;
+            transition: all var(--transition-base);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .btn-primary {
+            background: var(--accent-blue);
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #4a9eff;
+        }
+        .btn-secondary {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+            border: 1px solid var(--border-base);
+        }
+        .btn-secondary:hover {
+            background: var(--bg-active);
+        }
+        .btn-success {
+            background: var(--accent-green);
+            color: white;
+        }
+        .btn-success:hover {
+            background: #2ea043;
+        }
+        .btn-danger {
+            background: var(--accent-orange);
+            color: white;
+        }
+        .btn-danger:hover {
+            background: #e63946;
+        }
+        .btn-group {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        .status-badge.online {
+            background: rgba(35, 134, 54, 0.2);
+            color: var(--status-online);
+        }
+        .status-badge.offline {
+            background: rgba(218, 54, 51, 0.2);
+            color: var(--status-offline);
+        }
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+        .log-area {
+            background: var(--bg-base);
+            border: 1px solid var(--border-base);
+            border-radius: 8px;
+            padding: 1rem;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+        .log-entry {
+            margin-bottom: 0.5rem;
+            padding: 0.25rem 0;
+        }
+        .log-entry.success {
+            color: var(--accent-green);
+        }
+        .log-entry.error {
+            color: var(--accent-orange);
+        }
+        .log-entry.info {
+            color: var(--accent-blue);
+        }
+        .auto-send-controls {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        .auto-send-controls input[type="number"] {
+            width: 100px;
+            padding: 0.5rem;
+            background: var(--bg-base);
+            border: 1px solid var(--border-base);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-family: var(--font-mono);
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="test-header">
+            <h1>🔬 MQTT Test Publisher</h1>
+            <p>Send test data to HiveMQ Cloud for dashboard testing</p>
+        </div>
+
+        <!-- Connection Status -->
+        <div class="test-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h2>Connection</h2>
+                <span class="status-badge offline" id="connectionBadge">
+                    <span class="status-dot"></span>
+                    <span id="connectionStatus">Disconnected</span>
+                </span>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Broker URL (WebSocket)</label>
+                <input type="text" id="brokerUrl" class="form-input" 
+                       value="wss://44ebcd60f3ba4b2c94aaaa1fe61d6205.s1.eu.hivemq.cloud:8884/mqtt" 
+                       placeholder="wss://your-broker:8884/mqtt">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Client ID</label>
+                <input type="text" id="clientId" class="form-input" placeholder="Auto-generated">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Username (Required for HiveMQ Cloud)</label>
+                <input type="text" id="mqttUsername" class="form-input" placeholder="Enter your HiveMQ Cloud username">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Password (Required for HiveMQ Cloud)</label>
+                <input type="password" id="mqttPassword" class="form-input" placeholder="Enter your HiveMQ Cloud password">
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-primary" id="connectBtn">Connect</button>
+                <button class="btn btn-secondary" id="disconnectBtn">Disconnect</button>
+            </div>
+        </div>
+
+        <!-- Manual Data Publishing -->
+        <div class="test-card">
+            <h2>Manual Data Publishing</h2>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Temperature (°C)</label>
+                    <input type="number" id="tempValue" class="form-input" value="23.5" step="0.1">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Humidity (%)</label>
+                    <input type="number" id="humValue" class="form-input" value="65.0" step="0.1" min="0" max="100">
+                </div>
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-success" id="sendTempBtn">Send Temperature</button>
+                <button class="btn btn-success" id="sendHumBtn">Send Humidity</button>
+                <button class="btn btn-success" id="sendStatusBtn">Send Status (JSON)</button>
+            </div>
+        </div>
+
+        <!-- Auto-Send Mode -->
+        <div class="test-card">
+            <h2>Auto-Send Mode</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 1rem; font-size: 0.875rem;">
+                Automatically sends sensor data at specified intervals using preset scenarios or custom ranges
+            </p>
+            
+            <!-- Scenario Presets -->
+            <div class="form-group" style="margin-bottom: 1.5rem;">
+                <label class="form-label">Scenario Preset</label>
+                <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                        <input type="radio" name="scenario" value="normal" checked style="cursor: pointer;">
+                        <span>🌡️ Normal (20-25°C, 50-65%)</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                        <input type="radio" name="scenario" value="hot" style="cursor: pointer;">
+                        <span>🔥 Hot (28-35°C, 70-85%)</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                        <input type="radio" name="scenario" value="cold" style="cursor: pointer;">
+                        <span>❄️ Cold (15-20°C, 40-55%)</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                        <input type="radio" name="scenario" value="custom" style="cursor: pointer;">
+                        <span>⚙️ Custom Range</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Interval (seconds)</label>
+                <input type="number" id="autoInterval" class="form-input" value="5" min="1" max="60">
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Temperature Range (°C)</label>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <input type="number" id="tempMin" class="form-input" value="20" step="0.1" placeholder="Min">
+                        <input type="number" id="tempMax" class="form-input" value="25" step="0.1" placeholder="Max">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Humidity Range (%)</label>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <input type="number" id="humMin" class="form-input" value="50" step="0.1" placeholder="Min" min="0" max="100">
+                        <input type="number" id="humMax" class="form-input" value="65" step="0.1" placeholder="Max" min="0" max="100">
+                    </div>
+                </div>
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-primary" id="startAutoBtn">Start Auto-Send</button>
+                <button class="btn btn-danger" id="stopAutoBtn" disabled>Stop Auto-Send</button>
+            </div>
+        </div>
+
+        <!-- Activity Log -->
+        <div class="test-card">
+            <h2>Activity Log</h2>
+            <div class="log-area" id="logArea">
+                <div class="log-entry info">Ready to connect...</div>
+            </div>
+            <div style="margin-top: 1rem;">
+                <button class="btn btn-secondary" id="clearLogBtn">Clear Log</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // MQTT Client
+        let mqttClient = null;
+        let isConnected = false;
+        let autoSendInterval = null;
+
+        // DOM Elements
+        const brokerUrlInput = document.getElementById('brokerUrl');
+        const clientIdInput = document.getElementById('clientId');
+        const mqttUsernameInput = document.getElementById('mqttUsername');
+        const mqttPasswordInput = document.getElementById('mqttPassword');
+        const connectBtn = document.getElementById('connectBtn');
+        const disconnectBtn = document.getElementById('disconnectBtn');
+        const connectionBadge = document.getElementById('connectionBadge');
+        const connectionStatus = document.getElementById('connectionStatus');
+        const tempValue = document.getElementById('tempValue');
+        const humValue = document.getElementById('humValue');
+        const sendTempBtn = document.getElementById('sendTempBtn');
+        const sendHumBtn = document.getElementById('sendHumBtn');
+        const sendStatusBtn = document.getElementById('sendStatusBtn');
+        const autoInterval = document.getElementById('autoInterval');
+        const tempMin = document.getElementById('tempMin');
+        const tempMax = document.getElementById('tempMax');
+        const humMin = document.getElementById('humMin');
+        const humMax = document.getElementById('humMax');
+        const startAutoBtn = document.getElementById('startAutoBtn');
+        const stopAutoBtn = document.getElementById('stopAutoBtn');
+        const logArea = document.getElementById('logArea');
+        const clearLogBtn = document.getElementById('clearLogBtn');
+
+        // Logging function
+        function addLog(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry ${type}`;
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            logArea.appendChild(logEntry);
+            logArea.scrollTop = logArea.scrollHeight;
+        }
+
+        // Update connection status
+        function updateConnectionStatus(connected) {
+            isConnected = connected;
+            if (connected) {
+                connectionBadge.className = 'status-badge online';
+                connectionStatus.textContent = 'Connected';
+                connectBtn.disabled = true;
+                disconnectBtn.disabled = false;
+            } else {
+                connectionBadge.className = 'status-badge offline';
+                connectionStatus.textContent = 'Disconnected';
+                connectBtn.disabled = false;
+                disconnectBtn.disabled = true;
+                stopAutoSend();
+            }
+        }
+
+        // Connect to MQTT
+        function connectToMQTT() {
+            const brokerUrl = brokerUrlInput.value.trim();
+            const clientId = clientIdInput.value.trim() || 'test-publisher-' + Math.random().toString(16).substr(2, 8);
+            const username = mqttUsernameInput.value.trim();
+            const password = mqttPasswordInput.value.trim();
+
+            if (!brokerUrl) {
+                addLog('Error: Broker URL is required', 'error');
+                return;
+            }
+
+            // Check if credentials are provided for secure brokers
+            if (brokerUrl.startsWith('wss://') && (!username || !password)) {
+                addLog('⚠️ Warning: Username and password are required for HiveMQ Cloud', 'error');
+                addLog('Please enter your HiveMQ Cloud credentials', 'error');
+                return;
+            }
+
+            addLog(`Connecting to ${brokerUrl}...`, 'info');
+
+            try {
+                const connectOptions = {
+                    clientId: clientId,
+                    clean: true,
+                    reconnectPeriod: 1000,
+                };
+
+                // Add authentication if provided
+                if (username && password) {
+                    connectOptions.username = username;
+                    connectOptions.password = password;
+                    addLog('Using authentication credentials', 'info');
+                }
+
+                mqttClient = mqtt.connect(brokerUrl, connectOptions);
+
+                mqttClient.on('connect', () => {
+                    addLog('✅ Connected to MQTT broker', 'success');
+                    updateConnectionStatus(true);
+                });
+
+                mqttClient.on('error', (error) => {
+                    addLog(`❌ MQTT Error: ${error.message}`, 'error');
+                    updateConnectionStatus(false);
+                });
+
+                mqttClient.on('close', () => {
+                    addLog('Connection closed', 'info');
+                    updateConnectionStatus(false);
+                });
+
+                mqttClient.on('offline', () => {
+                    addLog('Client offline', 'info');
+                    updateConnectionStatus(false);
+                });
+
+            } catch (error) {
+                addLog(`❌ Connection failed: ${error.message}`, 'error');
+                updateConnectionStatus(false);
+            }
+        }
+
+        // Disconnect from MQTT
+        function disconnectFromMQTT() {
+            if (mqttClient) {
+                mqttClient.end();
+                mqttClient = null;
+                addLog('Disconnected from MQTT broker', 'info');
+                updateConnectionStatus(false);
+            }
+        }
+
+        // Publish message
+        function publishMessage(topic, message) {
+            if (!mqttClient || !isConnected) {
+                addLog('❌ Not connected to MQTT broker', 'error');
+                return false;
+            }
+
+            mqttClient.publish(topic, message, { qos: 0 }, (err) => {
+                if (err) {
+                    addLog(`❌ Failed to publish to ${topic}: ${err.message}`, 'error');
+                } else {
+                    addLog(`📤 Published to ${topic}: ${message}`, 'success');
+                }
+            });
+
+            return true;
+        }
+
+        // Send temperature
+        function sendTemperature() {
+            const temp = parseFloat(tempValue.value);
+            if (isNaN(temp)) {
+                addLog('❌ Invalid temperature value', 'error');
+                return;
+            }
+            publishMessage('weather/temperature', temp.toString());
+        }
+
+        // Send humidity
+        function sendHumidity() {
+            const hum = parseFloat(humValue.value);
+            if (isNaN(hum) || hum < 0 || hum > 100) {
+                addLog('❌ Invalid humidity value (must be 0-100)', 'error');
+                return;
+            }
+            publishMessage('weather/humidity', hum.toString());
+        }
+
+        // Send status (JSON)
+        function sendStatus() {
+            const temp = parseFloat(tempValue.value);
+            const hum = parseFloat(humValue.value);
+            
+            if (isNaN(temp) || isNaN(hum)) {
+                addLog('❌ Invalid temperature or humidity value', 'error');
+                return;
+            }
+
+            const status = {
+                temperature: temp,
+                humidity: hum,
+                fan: false,
+                timestamp: new Date().toISOString()
+            };
+
+            publishMessage('weather/status', JSON.stringify(status));
+        }
+
+        // Scenario presets
+        const scenarioPresets = {
+            'normal': {
+                tempMin: 20,
+                tempMax: 25,
+                humMin: 50,
+                humMax: 65,
+                description: 'Normal conditions'
+            },
+            'hot': {
+                tempMin: 28,
+                tempMax: 35,
+                humMin: 70,
+                humMax: 85,
+                description: 'Hot conditions (triggers fan)'
+            },
+            'cold': {
+                tempMin: 15,
+                tempMax: 20,
+                humMin: 40,
+                humMax: 55,
+                description: 'Cold conditions'
+            }
+        };
+
+        // Apply scenario preset
+        function applyScenario(scenario) {
+            if (scenario === 'custom') {
+                // Don't change values for custom, just log
+                addLog('Using custom range', 'info');
+                return;
+            }
+
+            const preset = scenarioPresets[scenario];
+            if (preset) {
+                tempMin.value = preset.tempMin;
+                tempMax.value = preset.tempMax;
+                humMin.value = preset.humMin;
+                humMax.value = preset.humMax;
+                addLog(`✅ Applied ${preset.description} scenario (Temp: ${preset.tempMin}-${preset.tempMax}°C, Hum: ${preset.humMin}-${preset.humMax}%)`, 'success');
+            }
+        }
+
+        // Generate random value in range
+        function randomInRange(min, max) {
+            return (Math.random() * (max - min) + min).toFixed(1);
+        }
+
+        // Auto-send function
+        function autoSend() {
+            const temp = parseFloat(randomInRange(parseFloat(tempMin.value), parseFloat(tempMax.value)));
+            const hum = parseFloat(randomInRange(parseFloat(humMin.value), parseFloat(humMax.value)));
+
+            // Update input fields
+            tempValue.value = temp;
+            humValue.value = hum;
+
+            // Send both temperature and humidity
+            publishMessage('weather/temperature', temp.toString());
+            setTimeout(() => {
+                publishMessage('weather/humidity', hum.toString());
+            }, 100);
+
+            // Also send status JSON
+            setTimeout(() => {
+                const status = {
+                    temperature: temp,
+                    humidity: hum,
+                    fan: false,
+                    timestamp: new Date().toISOString()
+                };
+                publishMessage('weather/status', JSON.stringify(status));
+            }, 200);
+        }
+
+        // Start auto-send
+        function startAutoSend() {
+            if (autoSendInterval) {
+                return;
+            }
+
+            const interval = parseFloat(autoInterval.value) * 1000;
+            if (isNaN(interval) || interval < 1000) {
+                addLog('❌ Invalid interval (must be at least 1 second)', 'error');
+                return;
+            }
+
+            // Get current scenario
+            const selectedScenario = document.querySelector('input[name="scenario"]:checked').value;
+            const scenarioInfo = selectedScenario !== 'custom' 
+                ? scenarioPresets[selectedScenario].description 
+                : 'Custom range';
+
+            autoSendInterval = setInterval(autoSend, interval);
+            startAutoBtn.disabled = true;
+            stopAutoBtn.disabled = false;
+            addLog(`🔄 Auto-send started (every ${autoInterval.value} seconds) - ${scenarioInfo}`, 'info');
+            addLog(`📊 Range: Temp ${tempMin.value}-${tempMax.value}°C, Hum ${humMin.value}-${humMax.value}%`, 'info');
+            autoSend(); // Send immediately
+        }
+
+        // Stop auto-send
+        function stopAutoSend() {
+            if (autoSendInterval) {
+                clearInterval(autoSendInterval);
+                autoSendInterval = null;
+                startAutoBtn.disabled = false;
+                stopAutoBtn.disabled = true;
+                addLog('⏹️ Auto-send stopped', 'info');
+            }
+        }
+
+        // Event Listeners
+        connectBtn.addEventListener('click', connectToMQTT);
+        disconnectBtn.addEventListener('click', disconnectFromMQTT);
+        sendTempBtn.addEventListener('click', sendTemperature);
+        sendHumBtn.addEventListener('click', sendHumidity);
+        sendStatusBtn.addEventListener('click', sendStatus);
+        startAutoBtn.addEventListener('click', startAutoSend);
+        stopAutoBtn.addEventListener('click', stopAutoSend);
+        clearLogBtn.addEventListener('click', () => {
+            logArea.innerHTML = '';
+            addLog('Log cleared', 'info');
+        });
+
+        // Scenario preset listeners
+        document.querySelectorAll('input[name="scenario"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                applyScenario(e.target.value);
+            });
+        });
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!clientIdInput.value) {
+                clientIdInput.value = 'test-publisher-' + Math.random().toString(16).substr(2, 8);
+            }
+            // Apply default scenario (normal)
+            applyScenario('normal');
+            addLog('Test publisher initialized', 'info');
+            updateConnectionStatus(false);
+        });
+    </script>
+</body>
+</html>
+

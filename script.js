@@ -1,0 +1,869 @@
+// MQTT Client Configuration
+let mqttClient = null;
+let isConnected = false;
+
+// Chart Configuration
+let dataChart = null;
+const maxDataPoints = 20;
+let temperatureData = [];
+let humidityData = [];
+let timeLabels = [];
+
+// DOM Elements
+const connectionStatus = document.getElementById('connectionStatus');
+const statusDot = document.getElementById('statusDot');
+const statusIndicator = document.getElementById('statusIndicator');
+const temperatureDisplay = document.getElementById('temperature');
+const humidityDisplay = document.getElementById('humidity');
+const fanStatusCard = document.getElementById('fanStatusCard');
+const fanStatusDot = document.getElementById('fanStatusDot');
+const fanStatusText = document.getElementById('fanStatusText');
+const fanStatusSubtext = document.getElementById('fanStatusSubtext');
+const fanIcon = document.getElementById('fanIcon');
+const connectBtn = document.getElementById('connectBtn');
+const disconnectBtn = document.getElementById('disconnectBtn');
+const brokerUrlInput = document.getElementById('brokerUrl');
+const clientIdInput = document.getElementById('clientId');
+const mqttUsernameInput = document.getElementById('mqttUsername');
+const mqttPasswordInput = document.getElementById('mqttPassword');
+const timestamp = document.getElementById('timestamp');
+
+// Automation DOM Elements
+const automationEnabled = document.getElementById('automationEnabled');
+const fanMode = document.getElementById('fanMode');
+const modeDescription = document.getElementById('modeDescription');
+const currentTempSettings = document.getElementById('currentTempSettings');
+const currentHumSettings = document.getElementById('currentHumSettings');
+
+// Preset configurations for user-friendly modes
+const fanModePresets = {
+    'very_hot': {
+        description: 'Fan turns on when temperature is very high (> 32°C) or humidity is very high (> 80%)',
+        tempOn: 32,
+        tempOff: 30,
+        tempCondition: 'above',
+        humOn: 80,
+        humOff: 75,
+        humCondition: 'above'
+    },
+    'hot': {
+        description: 'Fan turns on when temperature is high (> 28°C) or humidity is high (> 70%)',
+        tempOn: 28,
+        tempOff: 26,
+        tempCondition: 'above',
+        humOn: 70,
+        humOff: 65,
+        humCondition: 'above'
+    },
+    'always_on': {
+        description: 'Fan stays on regardless of temperature or humidity',
+        tempOn: -999,
+        tempOff: -999,
+        tempCondition: 'above',
+        humOn: -999,
+        humOff: -999,
+        humCondition: 'above'
+    }
+};
+
+// Automation State
+let automationActive = false;
+let currentTemp = null;
+let currentHum = null;
+let fanAutoState = false;
+let activationTimer = null;
+let conditionMetSince = null;
+
+// Update timestamp
+function updateTimestamp() {
+    const now = new Date();
+    const time = now.toLocaleTimeString('en-US', { 
+        hour12: false,
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+    });
+    if (timestamp) timestamp.textContent = time;
+}
+
+setInterval(updateTimestamp, 1000);
+updateTimestamp();
+
+// Initialize Chart with Professional Dark Theme
+function initializeChart() {
+    const ctx = document.getElementById('dataChart').getContext('2d');
+    
+    // Professional color palette
+    const tempColor = '#ff6b35';
+    const humColor = '#4dabf7';
+    const gridColor = 'rgba(139, 148, 158, 0.1)';
+    const textColor = '#8b949e';
+    
+    dataChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: timeLabels,
+            datasets: [
+                {
+                    label: 'Temperature',
+                    data: temperatureData,
+                    borderColor: tempColor,
+                    backgroundColor: 'rgba(255, 107, 53, 0.05)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: true,
+                    pointRadius: 0,
+                    pointHoverRadius: 6,
+                    pointBackgroundColor: tempColor,
+                    pointBorderColor: '#0d1117',
+                    pointBorderWidth: 2,
+                    pointHoverBackgroundColor: tempColor,
+                    pointHoverBorderColor: '#ffffff',
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Humidity',
+                    data: humidityData,
+                    borderColor: humColor,
+                    backgroundColor: 'rgba(77, 171, 247, 0.05)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: true,
+                    pointRadius: 0,
+                    pointHoverRadius: 6,
+                    pointBackgroundColor: humColor,
+                    pointBorderColor: '#0d1117',
+                    pointBorderWidth: 2,
+                    pointHoverBackgroundColor: humColor,
+                    pointHoverBorderColor: '#ffffff',
+                    yAxisID: 'y1'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    align: 'end',
+                    labels: {
+                        color: textColor,
+                        font: {
+                            family: 'Space Grotesk, sans-serif',
+                            size: 12,
+                            weight: '500'
+                        },
+                        padding: 20,
+                        usePointStyle: true,
+                        pointStyle: 'circle',
+                        boxWidth: 8,
+                        boxHeight: 8
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(22, 27, 34, 0.95)',
+                    titleColor: '#f0f6fc',
+                    bodyColor: '#8b949e',
+                    borderColor: '#30363d',
+                    borderWidth: 1,
+                    padding: 12,
+                    cornerRadius: 8,
+                    displayColors: true,
+                    titleFont: {
+                        family: 'Space Grotesk, sans-serif',
+                        size: 12,
+                        weight: '600'
+                    },
+                    bodyFont: {
+                        family: 'JetBrains Mono, monospace',
+                        size: 13
+                    },
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.dataset.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            if (context.parsed.y !== null) {
+                                const value = context.dataset.label === 'Temperature' 
+                                    ? context.parsed.y.toFixed(2) + '°C'
+                                    : context.parsed.y.toFixed(2) + '%';
+                                label += value;
+                            }
+                            return label;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    ticks: {
+                        color: textColor,
+                        font: {
+                            family: 'JetBrains Mono, monospace',
+                            size: 11
+                        },
+                        maxRotation: 0,
+                        padding: 8
+                    },
+                    grid: {
+                        color: gridColor,
+                        drawBorder: false,
+                        lineWidth: 1
+                    }
+                },
+                y: {
+                    type: 'linear',
+                    display: true,
+                    position: 'left',
+                    title: {
+                        display: true,
+                        text: 'Temperature (°C)',
+                        color: textColor,
+                        font: {
+                            family: 'Space Grotesk, sans-serif',
+                            size: 11,
+                            weight: '500'
+                        },
+                        padding: { top: 0, bottom: 12 }
+                    },
+                    ticks: {
+                        color: textColor,
+                        font: {
+                            family: 'JetBrains Mono, monospace',
+                            size: 11
+                        },
+                        padding: 8
+                    },
+                    grid: {
+                        color: gridColor,
+                        drawBorder: false,
+                        lineWidth: 1
+                    }
+                },
+                y1: {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    title: {
+                        display: true,
+                        text: 'Humidity (%)',
+                        color: textColor,
+                        font: {
+                            family: 'Space Grotesk, sans-serif',
+                            size: 11,
+                            weight: '500'
+                        },
+                        padding: { top: 0, bottom: 12 }
+                    },
+                    ticks: {
+                        color: textColor,
+                        font: {
+                            family: 'JetBrains Mono, monospace',
+                            size: 11
+                        },
+                        padding: 8
+                    },
+                    grid: {
+                        drawOnChartArea: false,
+                        drawBorder: false
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Connect to MQTT Broker
+function connectToMQTT() {
+    // Disconnect existing connection first to prevent duplicates
+    if (mqttClient) {
+        console.log('Disconnecting existing MQTT client...');
+        mqttClient.end();
+        mqttClient = null;
+        isConnected = false;
+    }
+    
+    const brokerUrl = brokerUrlInput.value || 'ws://broker.hivemq.com:8000/mqtt';
+    const clientId = clientIdInput.value || 'dashboard-' + Math.random().toString(16).substr(2, 8);
+    const username = mqttUsernameInput ? mqttUsernameInput.value.trim() : '';
+    const password = mqttPasswordInput ? mqttPasswordInput.value.trim() : '';
+    
+    console.log('Connecting to MQTT broker:', brokerUrl);
+    
+    // Check if credentials are required for secure brokers
+    if (brokerUrl.startsWith('wss://') && (!username || !password)) {
+        alert('Username and password are required for HiveMQ Cloud. Please enter your credentials.');
+        return;
+    }
+    
+    try {
+        const connectOptions = {
+            clientId: clientId,
+            clean: true,
+            reconnectPeriod: 1000,
+            connectTimeout: 10000, // 10 second timeout
+            keepalive: 60, // Keep alive interval
+        };
+        
+        // Add authentication if provided
+        if (username && password) {
+            connectOptions.username = username;
+            connectOptions.password = password;
+            console.log('Using authentication credentials');
+        }
+        
+        mqttClient = mqtt.connect(brokerUrl, connectOptions);
+        
+        mqttClient.on('connect', () => {
+            console.log('Connected to MQTT broker');
+            isConnected = true;
+            updateConnectionStatus(true);
+            
+            // Subscribe to topics (only sensor data, NOT fan status)
+            // Dashboard determines fan status based on sensor data + automation
+            mqttClient.subscribe('weather/temperature', (err) => {
+                if (!err) console.log('Subscribed to weather/temperature');
+            });
+            
+            mqttClient.subscribe('weather/humidity', (err) => {
+                if (!err) console.log('Subscribed to weather/humidity');
+            });
+            
+            mqttClient.subscribe('weather/status', (err) => {
+                if (!err) console.log('Subscribed to weather/status (sensor data only)');
+            });
+        });
+        
+        mqttClient.on('message', (topic, message) => {
+            const data = message.toString();
+            console.log(`Received on ${topic}: ${data}`);
+            
+            handleMQTTMessage(topic, data);
+        });
+        
+        mqttClient.on('error', (error) => {
+            console.error('❌ MQTT Error:', error);
+            console.error('Error details:', error.message, error.code);
+            isConnected = false;
+            updateConnectionStatus(false);
+        });
+        
+        mqttClient.on('close', () => {
+            console.log('⚠️ MQTT connection closed');
+            isConnected = false;
+            updateConnectionStatus(false);
+        });
+        
+        mqttClient.on('offline', () => {
+            console.log('⚠️ MQTT client offline');
+            isConnected = false;
+            updateConnectionStatus(false);
+        });
+        
+        mqttClient.on('reconnect', () => {
+            console.log('🔄 MQTT reconnecting...');
+        });
+        
+    } catch (error) {
+        console.error('Failed to connect:', error);
+        alert('Failed to connect to MQTT broker. Check the broker URL.');
+    }
+}
+
+// Disconnect from MQTT
+function disconnectFromMQTT() {
+    if (mqttClient) {
+        mqttClient.end();
+        mqttClient = null;
+        isConnected = false;
+        updateConnectionStatus(false);
+        console.log('Disconnected from MQTT broker');
+    }
+}
+
+// Handle incoming MQTT messages
+function handleMQTTMessage(topic, message) {
+    if (topic === 'weather/temperature') {
+        const temp = parseFloat(message);
+        if (!isNaN(temp)) {
+            updateTemperature(temp);
+        }
+    } else if (topic === 'weather/humidity') {
+        const hum = parseFloat(message);
+        if (!isNaN(hum)) {
+            updateHumidity(hum);
+        }
+    } else if (topic === 'weather/status') {
+        try {
+            const status = JSON.parse(message);
+            // Only read sensor data from ESP32, NOT fan status
+            // Dashboard determines fan status based on sensor data + automation rules
+            if (status.temperature !== undefined) updateTemperature(status.temperature);
+            if (status.humidity !== undefined) updateHumidity(status.humidity);
+            // Ignore status.fan - dashboard is the source of truth for fan status
+        } catch (e) {
+            console.error('Error parsing status JSON:', e);
+        }
+    }
+}
+
+// Update temperature display
+function updateTemperature(value) {
+    if (temperatureDisplay) {
+        temperatureDisplay.textContent = value.toFixed(1);
+        addDataPoint('temperature', value);
+    }
+    currentTemp = value;
+    checkAutomation();
+}
+
+// Update humidity display
+function updateHumidity(value) {
+    if (humidityDisplay) {
+        humidityDisplay.textContent = value.toFixed(1);
+        addDataPoint('humidity', value);
+    }
+    currentHum = value;
+    checkAutomation();
+}
+
+// Update fan status with visual indicator
+function updateFanStatus(state) {
+    if (!fanStatusCard || !fanStatusDot || !fanStatusText || !fanStatusSubtext) {
+        console.warn('Fan status elements not found');
+        return;
+    }
+
+    if (state) {
+        // Fan is ON
+        fanStatusCard.classList.add('fan-on');
+        fanStatusCard.classList.remove('fan-off');
+        fanStatusDot.classList.add('fan-on');
+        fanStatusDot.classList.remove('fan-off');
+        fanStatusText.classList.add('fan-on');
+        fanStatusText.classList.remove('fan-off');
+        fanStatusText.textContent = 'ON';
+        fanStatusSubtext.textContent = 'Running';
+    } else {
+        // Fan is OFF
+        fanStatusCard.classList.add('fan-off');
+        fanStatusCard.classList.remove('fan-on');
+        fanStatusDot.classList.add('fan-off');
+        fanStatusDot.classList.remove('fan-on');
+        fanStatusText.classList.add('fan-off');
+        fanStatusText.classList.remove('fan-on');
+        fanStatusText.textContent = 'OFF';
+        fanStatusSubtext.textContent = 'Standby';
+    }
+    
+    console.log('Fan status updated to:', state ? 'ON' : 'OFF');
+}
+
+// Add data point to chart
+function addDataPoint(type, value) {
+    const now = new Date();
+    const timeLabel = now.toLocaleTimeString('en-US', { 
+        hour12: false,
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+    });
+    
+    if (type === 'temperature') {
+        temperatureData.push(value);
+        if (temperatureData.length > maxDataPoints) {
+            temperatureData.shift();
+        }
+    } else if (type === 'humidity') {
+        humidityData.push(value);
+        if (humidityData.length > maxDataPoints) {
+            humidityData.shift();
+        }
+    }
+    
+    // Update time labels (only when we have new data)
+    if (temperatureData.length === humidityData.length) {
+        timeLabels.push(timeLabel);
+        if (timeLabels.length > maxDataPoints) {
+            timeLabels.shift();
+        }
+    }
+    
+    // Update chart
+    if (dataChart) {
+        dataChart.update('none');
+    }
+}
+
+// Update connection status UI
+function updateConnectionStatus(connected) {
+    if (connected) {
+        if (connectionStatus) {
+            connectionStatus.textContent = 'Online';
+        }
+        if (statusDot) {
+            statusDot.classList.add('online');
+        }
+    } else {
+        if (connectionStatus) {
+            connectionStatus.textContent = 'Offline';
+        }
+        if (statusDot) {
+            statusDot.classList.remove('online');
+        }
+    }
+}
+
+// Send fan control command
+function sendFanCommand(command, isAuto = false) {
+    const fanState = command === 'ON';
+    
+    // Update UI immediately (regardless of MQTT connection)
+    updateFanStatus(fanState);
+    if (isAuto) {
+        fanAutoState = fanState;
+    }
+    
+    // Send MQTT command to ESP32
+    // ESP32 only receives commands and controls the relay - it doesn't send fan status back
+    if (mqttClient && isConnected) {
+        // Publish control command to ESP32
+        // ESP32 subscribes to this topic and executes the command
+        mqttClient.publish('weather/control/fan', command, { qos: 1 }, (err) => {
+            if (err) {
+                console.error('Error publishing fan command:', err);
+                if (!isAuto) {
+                    alert('Failed to send command. Check MQTT connection.');
+                }
+            } else {
+                console.log(`✅ Fan command sent to ESP32: ${command}${isAuto ? ' (auto)' : ''}`);
+            }
+        });
+    } else {
+        if (!isAuto) {
+            alert('Not connected to MQTT broker. Please connect first.');
+        } else {
+            console.log(`⚠️ MQTT not connected, but fan status updated locally: ${command}`);
+        }
+    }
+    
+    // Update Firebase (optional - for historical data/backup)
+    updateFirebaseStatus(fanState, isAuto);
+}
+
+// Update Firebase Realtime Database with fan status
+async function updateFirebaseStatus(fanState, isAuto) {
+    console.log(`🔥 updateFirebaseStatus called: fanState=${fanState}, isAuto=${isAuto}, temp=${currentTemp}, hum=${currentHum}`);
+    
+    // Check if Firebase is initialized
+    if (typeof window.firebaseDatabase === 'undefined') {
+        console.warn('⚠️ Firebase not initialized. Make sure firebase-config.js is configured.');
+        console.log('Retrying Firebase update in 1 second...');
+        // Wait a bit and try again
+        setTimeout(() => updateFirebaseStatus(fanState, isAuto), 1000);
+        return;
+    }
+
+    // Check if database functions are available
+    if (typeof window.firebaseRef === 'undefined' || typeof window.firebaseSet === 'undefined') {
+        console.warn('⚠️ Firebase database functions not loaded yet. Retrying in 500ms...');
+        // Wait a bit and try again
+        setTimeout(() => updateFirebaseStatus(fanState, isAuto), 500);
+        return;
+    }
+
+    try {
+        const statusRef = window.firebaseRef(window.firebaseDatabase, 'fan/status');
+        
+        const statusData = {
+            status: fanState,
+            isAuto: isAuto,
+            timestamp: new Date().toISOString(),
+            temperature: currentTemp !== null ? currentTemp : null,
+            humidity: currentHum !== null ? currentHum : null
+        };
+
+        console.log('🔥 Attempting to write to Firebase:', statusData);
+        await window.firebaseSet(statusRef, statusData);
+        console.log('✅ Firebase updated successfully:', statusData);
+    } catch (error) {
+        console.error('❌ Error updating Firebase:', error);
+        console.error('Error message:', error.message);
+        if (error.code) {
+            console.error('Error code:', error.code);
+        }
+        if (error.stack) {
+            console.error('Stack trace:', error.stack);
+        }
+    }
+}
+
+// Periodic Firebase update to keep data fresh (even if state doesn't change)
+let periodicFirebaseUpdate = null;
+function startPeriodicFirebaseUpdate() {
+    if (periodicFirebaseUpdate) {
+        clearInterval(periodicFirebaseUpdate);
+    }
+    
+    // Update Firebase every 30 seconds with current state
+    periodicFirebaseUpdate = setInterval(() => {
+        if (automationActive && (currentTemp !== null || currentHum !== null)) {
+            console.log('🔄 Periodic Firebase update (every 30s)');
+            updateFirebaseStatus(fanAutoState, true);
+        }
+    }, 30000); // 30 seconds
+}
+
+function stopPeriodicFirebaseUpdate() {
+    if (periodicFirebaseUpdate) {
+        clearInterval(periodicFirebaseUpdate);
+        periodicFirebaseUpdate = null;
+    }
+}
+
+// Apply preset mode configuration
+function applyFanMode(mode) {
+    const preset = fanModePresets[mode];
+    if (!preset) return;
+
+    // Update description
+    if (modeDescription) {
+        modeDescription.textContent = preset.description;
+    }
+
+    // Update current settings display
+    if (currentTempSettings && currentHumSettings) {
+        if (mode === 'always_on') {
+            currentTempSettings.textContent = 'Always ON';
+            currentHumSettings.textContent = 'Always ON';
+        } else {
+            const tempCondSymbol = preset.tempCondition === 'below' ? '<' : '>';
+            const humCondSymbol = preset.humCondition === 'below' ? '<' : '>';
+            currentTempSettings.textContent = `ON: ${tempCondSymbol} ${preset.tempOn}°C, OFF: ${tempCondSymbol === '>' ? '<' : '>'} ${preset.tempOff}°C`;
+            currentHumSettings.textContent = `ON: ${humCondSymbol} ${preset.humOn}%, OFF: ${humCondSymbol === '>' ? '<' : '>'} ${preset.humOff}%`;
+        }
+    }
+}
+
+// Check automation conditions using hysteresis (professional approach)
+function checkAutomation() {
+    if (!automationActive) {
+        console.log('🔍 Automation check skipped: automation not active');
+        return;
+    }
+
+    const mode = fanMode ? fanMode.value : 'hot';
+    const preset = fanModePresets[mode];
+    if (!preset) {
+        console.log('🔍 Automation check skipped: invalid preset');
+        return;
+    }
+    
+    console.log(`🔍 Automation check: mode=${mode}, temp=${currentTemp}°C, hum=${currentHum}%, fanState=${fanAutoState}`);
+
+    // Always ON mode - works even without sensor data
+    if (mode === 'always_on') {
+        if (!fanAutoState) {
+            const delay = 1000; // 1 second delay for noise filtering
+            if (conditionMetSince === null) {
+                conditionMetSince = Date.now();
+                if (activationTimer) {
+                    clearTimeout(activationTimer);
+                }
+                activationTimer = setTimeout(() => {
+                    if (!fanAutoState && automationActive) {
+                        console.log('Automation: Activating fan (Always ON mode)');
+                        sendFanCommand('ON', true);
+                    }
+                }, delay);
+            }
+        }
+        return;
+    }
+
+    // For other modes, require sensor data
+    if (currentTemp === null || currentHum === null) {
+        return;
+    }
+
+    // Get thresholds from preset
+    const tempThreshOn = preset.tempOn;
+    const humThreshOn = preset.humOn;
+    const tempCondOn = preset.tempCondition;
+    const humCondOn = preset.humCondition;
+
+    const tempThreshOff = preset.tempOff;
+    const humThreshOff = preset.humOff;
+    const tempCondOff = preset.tempCondition;
+    const humCondOff = preset.humCondition;
+
+    // Check if conditions are met for turning ON (using ON thresholds)
+    const tempOnMet = tempCondOn === 'below' ? currentTemp < tempThreshOn : currentTemp > tempThreshOn;
+    const humOnMet = humCondOn === 'below' ? currentHum < humThreshOn : currentHum > humThreshOn;
+    const shouldTurnOn = tempOnMet || humOnMet;
+
+    // Check if conditions are met for turning OFF (using OFF thresholds)
+    const tempOffMet = tempCondOff === 'below' ? currentTemp > tempThreshOff : currentTemp < tempThreshOff;
+    const humOffMet = humCondOff === 'below' ? currentHum > humThreshOff : currentHum < humThreshOff;
+    const shouldTurnOff = tempOffMet || humOffMet;
+    
+    console.log(`🔍 Conditions: tempOn=${tempOnMet} (${currentTemp} ${tempCondOn} ${tempThreshOn}), humOn=${humOnMet} (${currentHum} ${humCondOn} ${humThreshOn})`);
+    console.log(`🔍 Should turn ON: ${shouldTurnOn}, Should turn OFF: ${shouldTurnOff}, Current fan state: ${fanAutoState}`);
+
+    // Hysteresis logic: Use different thresholds for ON and OFF
+    if (shouldTurnOn && !fanAutoState) {
+        // Condition met to turn ON - start delay timer for noise filtering
+        if (conditionMetSince === null) {
+            conditionMetSince = Date.now();
+            const delay = 1000; // 1 second delay for sensor noise filter (reduced from 2s)
+            
+            console.log(`⏱️ Starting activation timer (${delay}ms delay) - Conditions met for turning ON`);
+            
+            // Clear any existing timer
+            if (activationTimer) {
+                clearTimeout(activationTimer);
+            }
+            
+            // Set timer to activate fan after short delay (sensor noise filter)
+            activationTimer = setTimeout(() => {
+                // Double-check condition is still met (hysteresis ON threshold)
+                const stillOn = (tempCondOn === 'below' ? currentTemp < tempThreshOn : currentTemp > tempThreshOn) ||
+                               (humCondOn === 'below' ? currentHum < humThreshOn : currentHum > humThreshOn);
+                
+                // Also check that OFF condition is not met
+                const notOff = !((tempCondOff === 'below' ? currentTemp > tempThreshOff : currentTemp < tempThreshOff) ||
+                                (humCondOff === 'below' ? currentHum > humThreshOff : currentHum < humThreshOff));
+                
+                console.log(`⏱️ Timer fired - stillOn: ${stillOn}, notOff: ${notOff}, fanAutoState: ${fanAutoState}, automationActive: ${automationActive}`);
+                
+                if (stillOn && notOff && !fanAutoState && automationActive) {
+                    console.log(`✅ Automation: Activating fan (${mode} mode - threshold met)`);
+                    sendFanCommand('ON', true);
+                } else {
+                    console.log(`❌ Timer fired but conditions not met - canceling activation`);
+                    conditionMetSince = null;
+                }
+            }, delay);
+        } else {
+            console.log(`⏱️ Activation timer already running (started ${Date.now() - conditionMetSince}ms ago)`);
+        }
+    } else if (shouldTurnOff && fanAutoState) {
+        // Condition met to turn OFF (hysteresis OFF threshold) - immediate
+        if (conditionMetSince !== null) {
+            conditionMetSince = null;
+            if (activationTimer) {
+                clearTimeout(activationTimer);
+                activationTimer = null;
+            }
+        }
+        
+        // Turn off immediately when OFF threshold is met (hysteresis prevents rapid cycling)
+        console.log(`Automation: Deactivating fan (${mode} mode - OFF threshold met)`);
+        sendFanCommand('OFF', true);
+    } else if (!shouldTurnOn && conditionMetSince !== null) {
+        // Condition no longer met for turning ON - cancel timer
+        conditionMetSince = null;
+        if (activationTimer) {
+            clearTimeout(activationTimer);
+            activationTimer = null;
+        }
+    }
+}
+
+// Event Listeners
+if (connectBtn) {
+    connectBtn.addEventListener('click', () => {
+        connectToMQTT();
+    });
+}
+
+if (disconnectBtn) {
+    disconnectBtn.addEventListener('click', () => {
+        disconnectFromMQTT();
+    });
+}
+
+// Automation event listeners
+if (automationEnabled) {
+    automationEnabled.addEventListener('change', (e) => {
+        automationActive = e.target.checked;
+        if (!automationActive) {
+            // Disable automation - clear timers
+            if (activationTimer) {
+                clearTimeout(activationTimer);
+                activationTimer = null;
+            }
+            conditionMetSince = null;
+            stopPeriodicFirebaseUpdate();
+            console.log('Automation disabled');
+        } else {
+            // Enable automation - check conditions immediately
+            console.log('✅ Automation enabled, checking conditions...');
+            conditionMetSince = null; // Reset condition timer
+            startPeriodicFirebaseUpdate(); // Start periodic updates
+            checkAutomation();
+        }
+    });
+}
+
+// Fan mode change handler
+if (fanMode) {
+    fanMode.addEventListener('change', (e) => {
+        const mode = e.target.value;
+        applyFanMode(mode);
+        if (automationActive) {
+            // Reset automation state when mode changes
+            if (activationTimer) {
+                clearTimeout(activationTimer);
+                activationTimer = null;
+            }
+            conditionMetSince = null;
+            checkAutomation();
+        }
+    });
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('Dashboard initialized');
+    initializeChart();
+    
+    // Set default client ID
+    if (clientIdInput) {
+        clientIdInput.value = 'dashboard-' + Math.random().toString(16).substr(2, 8);
+    }
+    
+    // Initialize fan mode
+    if (fanMode) {
+        applyFanMode(fanMode.value);
+    }
+    
+    // Initialize fan status display
+    updateFanStatus(false);
+    
+    // Check if automation is enabled on page load
+    if (automationEnabled) {
+        automationActive = automationEnabled.checked;
+        if (automationActive) {
+            console.log('✅ Automation is enabled on page load');
+            startPeriodicFirebaseUpdate();
+            // Check automation immediately if sensor data is available
+            if (currentTemp !== null && currentHum !== null) {
+                console.log('🔍 Initial automation check with existing data');
+                checkAutomation();
+            }
+        } else {
+            console.log('⚠️ Automation is DISABLED - toggle it ON to enable automatic fan control');
+        }
+    }
+    
+    // Auto-connect on load (optional - comment out if you want manual connection)
+    // connectToMQTT();
+});

@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather Monitoring System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/mqtt/dist/mqtt.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Firebase Config (load first) -->
+    <script src="firebase-config.js"></script>
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getDatabase, ref, set } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+        
+        // Wait for firebaseConfig to be available
+        function initFirebase() {
+            if (typeof firebaseConfig !== 'undefined') {
+                try {
+                    window.firebaseApp = initializeApp(firebaseConfig);
+                    window.firebaseDatabase = getDatabase(window.firebaseApp);
+                    // Make database functions globally available
+                    window.firebaseRef = ref;
+                    window.firebaseSet = set;
+                    console.log('✅ Firebase initialized successfully');
+                    console.log('Database URL:', firebaseConfig.databaseURL);
+                } catch (error) {
+                    console.error('❌ Firebase initialization error:', error);
+                }
+            } else {
+                console.warn('⚠️ firebaseConfig not found, retrying...');
+                setTimeout(initFirebase, 200);
+            }
+        }
+        
+        // Try to initialize
+        if (typeof firebaseConfig !== 'undefined') {
+            initFirebase();
+        } else {
+            // Wait for config to load
+            setTimeout(initFirebase, 100);
+            setTimeout(initFirebase, 500);
+        }
+    </script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="brand">
+                    <svg class="brand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                        <path d="M2 17l10 5 10-5M2 12l10 5 10-5"/>
+                    </svg>
+                    <span class="brand-text">WeatherSys</span>
+                </div>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="#dashboard" class="nav-item active">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="7" height="7"/>
+                        <rect x="14" y="3" width="7" height="7"/>
+                        <rect x="14" y="14" width="7" height="7"/>
+                        <rect x="3" y="14" width="7" height="7"/>
+                    </svg>
+                    <span>Dashboard</span>
+                </a>
+                <a href="#settings" class="nav-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M12 1v6m0 6v6M5.64 5.64l4.24 4.24m4.24 4.24l4.24 4.24M1 12h6m6 0h6M5.64 18.36l4.24-4.24m4.24-4.24l4.24-4.24"/>
+                    </svg>
+                    <span>Settings</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="connection-status">
+                    <div class="status-indicator" id="statusIndicator">
+                        <span class="status-dot" id="statusDot"></span>
+                        <span class="status-text" id="connectionStatus">Offline</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Top Bar -->
+            <header class="topbar">
+                <div class="topbar-left">
+                    <h1 class="page-title">Environmental Monitoring</h1>
+                    <p class="page-subtitle">Real-time sensor data and system control</p>
+                </div>
+                <div class="topbar-right">
+                    <div class="timestamp" id="timestamp">--:--:--</div>
+                </div>
+            </header>
+
+            <!-- Metrics Grid -->
+            <section class="metrics-grid">
+                <div class="metric-card temp-card">
+                    <div class="metric-header">
+                        <div class="metric-icon temp-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/>
+                            </svg>
+                        </div>
+                        <div class="metric-label">Temperature</div>
+                    </div>
+                    <div class="metric-value-group">
+                        <div class="metric-value" id="temperature">--</div>
+                        <div class="metric-unit">°C</div>
+                    </div>
+                    <div class="metric-footer">
+                        <div class="metric-trend">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
+                                <polyline points="17 6 23 6 23 12"/>
+                            </svg>
+                            <span>Live</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="metric-card hum-card">
+                    <div class="metric-header">
+                        <div class="metric-icon hum-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0Z"/>
+                            </svg>
+                        </div>
+                        <div class="metric-label">Humidity</div>
+                    </div>
+                    <div class="metric-value-group">
+                        <div class="metric-value" id="humidity">--</div>
+                        <div class="metric-unit">%</div>
+                    </div>
+                    <div class="metric-footer">
+                        <div class="metric-trend">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
+                                <polyline points="17 6 23 6 23 12"/>
+                            </svg>
+                            <span>Live</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="metric-card fan-card" id="fanStatusCard">
+                    <div class="metric-header">
+                        <div class="metric-icon fan-icon" id="fanIcon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 2v20M17 7H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                            </svg>
+                        </div>
+                        <div class="metric-label">Fan Status</div>
+                    </div>
+                    <div class="metric-value-group">
+                        <div class="fan-status-indicator" id="fanStatusIndicator">
+                            <div class="fan-status-dot" id="fanStatusDot"></div>
+                            <div class="fan-status-text" id="fanStatusText">OFF</div>
+                        </div>
+                    </div>
+                    <div class="metric-footer">
+                        <div class="metric-trend">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="3"/>
+                            </svg>
+                            <span id="fanStatusSubtext">Standby</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Chart Section -->
+            <section class="chart-section">
+                <div class="section-header">
+                    <div>
+                        <h2 class="section-title">Historical Data</h2>
+                        <p class="section-description">Temperature and humidity trends over time</p>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="dataChart"></canvas>
+                </div>
+            </section>
+
+            <!-- Automation Settings -->
+            <section class="control-panel">
+                <div class="section-header">
+                    <div>
+                        <h2 class="section-title">Automation Settings</h2>
+                        <p class="section-description">Configure automatic fan control based on temperature and humidity</p>
+                    </div>
+                </div>
+                <div class="control-grid">
+                    <div class="control-card">
+                        <div class="control-header">
+                            <div class="control-label">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                                </svg>
+                                <span>Auto Fan Control</span>
+                            </div>
+                            <div class="control-state">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="automationEnabled">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                        <div style="margin-top: 1.5rem;">
+                            <div class="form-group" style="margin-bottom: 1.5rem;">
+                                <label class="form-label" style="margin-bottom: 0.75rem; font-size: 1rem;">Fan Activation Mode</label>
+                                <select id="fanMode" class="form-input" style="font-size: 1rem; padding: 1rem;">
+                                    <option value="very_hot">🌡️ Turn ON when Very HOT</option>
+                                    <option value="hot" selected>🌡️ Turn ON when HOT</option>
+                                    <option value="always_on">⚡ Always ON (regardless of temperature/humidity)</option>
+                                </select>
+                                <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.5rem;">
+                                    <span id="modeDescription">Fan turns on when temperature is high (&gt; 28°C) or humidity is high (&gt; 70%)</span>
+                                </p>
+                            </div>
+                            <div id="advancedSettings" style="border-top: 1px solid var(--border-base); padding-top: 1rem; margin-top: 1rem;">
+                                <div class="form-group" style="margin-bottom: 0.5rem;">
+                                    <label style="font-size: 0.75rem; color: var(--text-secondary); display: block; margin-bottom: 0.5rem;">
+                                        <strong>Current Settings:</strong>
+                                    </label>
+                                    <div style="background: var(--bg-base); padding: 0.75rem; border-radius: 6px; font-size: 0.875rem; color: var(--text-secondary);">
+                                        <div style="margin-bottom: 0.25rem;">🌡️ <strong>Temperature:</strong> <span id="currentTempSettings">ON: &gt; 28°C, OFF: &lt; 26°C</span></div>
+                                        <div>💧 <strong>Humidity:</strong> <span id="currentHumSettings">ON: &gt; 70%, OFF: &lt; 65%</span></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Connection Settings -->
+            <section class="settings-panel">
+                <div class="section-header">
+                    <div>
+                        <h2 class="section-title">MQTT Configuration</h2>
+                        <p class="section-description">Configure broker connection and client settings</p>
+                    </div>
+                </div>
+                <div class="settings-form">
+                    <div class="form-group">
+                        <label for="brokerUrl" class="form-label">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <line x1="2" y1="12" x2="22" y2="12"/>
+                                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                            </svg>
+                            <span>Broker URL</span>
+                        </label>
+                        <input type="text" id="brokerUrl" class="form-input" value="wss://44ebcd60f3ba4b2c94aaaa1fe61d6205.s1.eu.hivemq.cloud:8884/mqtt" placeholder="wss://your-broker:8884/mqtt">
+                    </div>
+                    <div class="form-group">
+                        <label for="clientId" class="form-label">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                                <circle cx="12" cy="7" r="4"/>
+                            </svg>
+                            <span>Client ID</span>
+                        </label>
+                        <input type="text" id="clientId" class="form-input" placeholder="Auto-generated">
+                    </div>
+                    <div class="form-group">
+                        <label for="mqttUsername" class="form-label">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                                <circle cx="12" cy="7" r="4"/>
+                            </svg>
+                            <span>Username (Required for HiveMQ Cloud)</span>
+                        </label>
+                        <input type="text" id="mqttUsername" class="form-input" placeholder="Enter your HiveMQ Cloud username">
+                    </div>
+                    <div class="form-group">
+                        <label for="mqttPassword" class="form-label">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                            </svg>
+                            <span>Password (Required for HiveMQ Cloud)</span>
+                        </label>
+                        <input type="password" id="mqttPassword" class="form-input" placeholder="Enter your HiveMQ Cloud password">
+                    </div>
+                    <div class="form-actions">
+                        <button id="connectBtn" class="form-btn btn-primary">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                                <polyline points="22 4 12 14.01 9 11.01"/>
+                            </svg>
+                            <span>Connect</span>
+                        </button>
+                        <button id="disconnectBtn" class="form-btn btn-secondary">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="18" y1="6" x2="6" y2="18"/>
+                                <line x1="6" y1="6" x2="18" y2="18"/>
+                            </svg>
+                            <span>Disconnect</span>
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
