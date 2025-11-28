@@ -86,11 +86,59 @@ body {
     position: fixed;
     height: 100vh;
     z-index: 100;
+    transition: transform var(--transition-base);
+    left: 0;
+    top: 0;
+}
+
+.sidebar.collapsed {
+    transform: translateX(-100%);
 }
 
 .sidebar-header {
     padding: var(--space-6);
     border-bottom: 1px solid var(--border-base);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+}
+
+.sidebar-toggle-header {
+    position: absolute;
+    right: var(--space-6);
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: var(--space-2);
+    border-radius: 6px;
+    transition: all var(--transition-base);
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sidebar-toggle-header:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.sidebar-toggle-header svg {
+    width: 18px;
+    height: 18px;
+}
+
+@media (min-width: 769px) {
+    .sidebar-toggle-header {
+        display: flex !important;
+    }
+    
+    .sidebar-close {
+        display: none;
+    }
 }
 
 .brand {
@@ -196,6 +244,12 @@ body {
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
+    transition: margin-left var(--transition-base);
+}
+
+.sidebar.collapsed ~ .main-content {
+    margin-left: 0;
 }
 
 /* ==================== TOPBAR ==================== */
@@ -203,6 +257,7 @@ body {
     background: var(--bg-elevated);
     border-bottom: 1px solid var(--border-base);
     padding: var(--space-4) var(--space-8);
+    padding-left: var(--space-8);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -212,6 +267,12 @@ body {
     backdrop-filter: blur(10px);
     margin-bottom: 0;
     flex-shrink: 0;
+    transition: padding-left var(--transition-base);
+}
+
+/* Adjust topbar padding when sidebar is collapsed to avoid button overlap */
+.app-container.sidebar-collapsed .topbar {
+    padding-left: calc(var(--space-8) + 56px); /* space-8 + button width (40px) + gap (16px) */
 }
 
 .page-title {
@@ -283,10 +344,10 @@ body {
 /* ==================== METRICS GRID ==================== */
 .metrics-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: var(--space-6);
-    margin-bottom: var(--space-6);
-    padding: var(--space-6) var(--space-8);
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: var(--space-4);
+    margin-bottom: var(--space-4);
+    padding: var(--space-4) var(--space-8);
     max-width: 1400px;
     width: 100%;
     margin-left: auto;
@@ -297,8 +358,8 @@ body {
 .metric-card {
     background: var(--bg-elevated);
     border: 1px solid var(--border-base);
-    border-radius: 12px;
-    padding: var(--space-6);
+    border-radius: 10px;
+    padding: var(--space-4);
     transition: all var(--transition-base);
     position: relative;
     overflow: hidden;
@@ -333,24 +394,25 @@ body {
 .metric-header {
     display: flex;
     align-items: center;
-    gap: var(--space-3);
-    margin-bottom: var(--space-6);
+    gap: var(--space-2);
+    margin-bottom: var(--space-3);
 }
 
 .metric-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 8px;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
     display: flex;
     align-items: center;
     justify-content: center;
     background: var(--bg-hover);
     border: 1px solid var(--border-base);
+    flex-shrink: 0;
 }
 
 .metric-icon svg {
-    width: 20px;
-    height: 20px;
+    width: 18px;
+    height: 18px;
 }
 
 .temp-icon {
@@ -399,7 +461,7 @@ body {
 }
 
 .metric-label {
-    font-size: 0.875rem;
+    font-size: 0.8125rem;
     color: var(--text-secondary);
     font-weight: 500;
     text-transform: uppercase;
@@ -410,14 +472,14 @@ body {
 .fan-status-indicator {
     display: flex;
     align-items: center;
-    gap: var(--space-4);
+    gap: var(--space-2);
     justify-content: center;
-    padding: var(--space-4) 0;
+    padding: var(--space-2) 0;
 }
 
 .fan-status-dot {
-    width: 16px;
-    height: 16px;
+    width: 10px;
+    height: 10px;
     border-radius: 50%;
     background: var(--text-tertiary);
     transition: all var(--transition-base);
@@ -471,12 +533,12 @@ body {
 }
 
 .fan-status-text {
-    font-size: 1.5rem;
+    font-size: 1.25rem;
     font-weight: 700;
     font-family: var(--font-mono);
     color: var(--text-secondary);
     transition: color var(--transition-base);
-    letter-spacing: 0.1em;
+    letter-spacing: 0.05em;
 }
 
 .fan-status-text.fan-on {
@@ -490,22 +552,22 @@ body {
 .metric-value-group {
     display: flex;
     align-items: baseline;
-    gap: var(--space-2);
-    margin-bottom: var(--space-4);
+    gap: var(--space-1);
+    margin-bottom: var(--space-2);
 }
 
 .metric-value {
-    font-size: 3rem;
+    font-size: 2rem;
     font-weight: 700;
     color: var(--text-primary);
     font-variant-numeric: tabular-nums;
-    letter-spacing: -0.03em;
-    line-height: 1;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
 }
 
 .metric-unit {
-    font-size: 1.25rem;
-    color: var(--text-tertiary);
+    font-size: 1rem;
+    color: var(--text-secondary);
     font-weight: 500;
 }
 
@@ -513,20 +575,21 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    margin-top: var(--space-1);
 }
 
 .metric-trend {
     display: flex;
     align-items: center;
-    gap: var(--space-2);
-    font-size: 0.75rem;
+    gap: var(--space-1);
+    font-size: 0.6875rem;
     color: var(--text-tertiary);
     font-weight: 500;
 }
 
 .metric-trend svg {
-    width: 14px;
-    height: 14px;
+    width: 12px;
+    height: 12px;
     color: var(--accent-green);
 }
 
@@ -606,6 +669,11 @@ body {
 /* ==================== CONTROL PANEL ==================== */
 .control-panel {
     margin-bottom: var(--space-8);
+    padding: var(--space-8);
+    max-width: 1400px;
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .control-grid {
@@ -740,6 +808,11 @@ body {
 /* ==================== SETTINGS PANEL ==================== */
 .settings-panel {
     margin-bottom: var(--space-8);
+    padding: var(--space-8);
+    max-width: 1400px;
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .settings-form {
@@ -899,40 +972,449 @@ body {
     box-shadow: 0 0 1px var(--accent-green);
 }
 
+/* ==================== SIDEBAR TOGGLE (Desktop) ==================== */
+.sidebar-toggle {
+    display: none !important; /* Hidden by default */
+    position: fixed;
+    top: var(--space-4);
+    left: var(--space-4);
+    z-index: 1001;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-base);
+    border-radius: 8px;
+    padding: var(--space-3);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all var(--transition-base);
+    width: 40px;
+    height: 40px;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Adjust topbar padding when sidebar is collapsed to avoid button overlap */
+.app-container.sidebar-collapsed .topbar {
+    padding-left: calc(var(--space-8) + 56px); /* space-8 + button width + gap */
+}
+
+/* Show floating toggle button when sidebar is collapsed */
+@media (min-width: 769px) {
+    .sidebar.collapsed ~ .main-content .sidebar-toggle,
+    .sidebar.collapsed ~ * .sidebar-toggle {
+        display: flex !important;
+    }
+}
+
+.sidebar-toggle:hover {
+    background: var(--bg-hover);
+    border-color: var(--border-hover);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.sidebar-toggle svg {
+    width: 20px;
+    height: 20px;
+}
+
+/* ==================== MOBILE MENU TOGGLE ==================== */
+.mobile-menu-toggle {
+    display: none;
+    position: fixed;
+    top: var(--space-4);
+    left: var(--space-4);
+    z-index: 1000;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-base);
+    border-radius: 8px;
+    padding: var(--space-3);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all var(--transition-base);
+    width: 44px;
+    height: 44px;
+    align-items: center;
+    justify-content: center;
+}
+
+.mobile-menu-toggle:hover {
+    background: var(--bg-hover);
+    border-color: var(--border-hover);
+}
+
+.mobile-menu-toggle svg {
+    width: 24px;
+    height: 24px;
+}
+
+.sidebar-close {
+    display: none;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: var(--space-2);
+    border-radius: 6px;
+    transition: all var(--transition-base);
+    width: 32px;
+    height: 32px;
+    align-items: center;
+    justify-content: center;
+}
+
+.sidebar-close:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.sidebar-close svg {
+    width: 20px;
+    height: 20px;
+}
+
 /* ==================== RESPONSIVE ==================== */
+@media (min-width: 769px) {
+    /* Desktop: Show floating sidebar toggle ONLY when sidebar is collapsed */
+    .app-container.sidebar-collapsed .sidebar-toggle {
+        display: flex !important;
+    }
+    
+    /* Hide floating toggle when sidebar is NOT collapsed */
+    .app-container:not(.sidebar-collapsed) .sidebar-toggle {
+        display: none !important;
+    }
+    
+    /* Also show toggle button in sidebar header when not collapsed */
+    .sidebar:not(.collapsed) .sidebar-header {
+        position: relative;
+    }
+}
+
 @media (max-width: 1024px) {
     .sidebar {
         width: 240px;
     }
     
-    .main-content {
-        margin-left: 240px;
-    }
-}
-
-@media (max-width: 768px) {
-    .sidebar {
-        width: 100%;
-        height: auto;
-        position: relative;
-        border-right: none;
-        border-bottom: 1px solid var(--border-base);
+    .sidebar.collapsed {
+        transform: translateX(-240px);
     }
     
     .main-content {
+        margin-left: 240px;
+    }
+    
+    .sidebar.collapsed ~ .main-content {
         margin-left: 0;
     }
     
     .metrics-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: var(--space-4);
+    }
+}
+
+@media (max-width: 768px) {
+    /* Hide desktop sidebar toggle on mobile */
+    .sidebar-toggle {
+        display: none !important;
     }
     
+    .sidebar-toggle-header {
+        display: none !important;
+    }
+    
+    /* Mobile Menu Toggle */
+    .mobile-menu-toggle {
+        display: flex;
+    }
+    
+    .sidebar-close {
+        display: flex;
+    }
+    
+    /* Sidebar - Hidden by default on mobile, slides in when toggled */
+    .sidebar {
+        width: 280px;
+        position: fixed;
+        left: -280px;
+        top: 0;
+        height: 100vh;
+        z-index: 999;
+        transition: left var(--transition-base);
+        border-right: 1px solid var(--border-base);
+        transform: none; /* Override desktop transform */
+    }
+    
+    .sidebar.collapsed {
+        transform: none; /* Override desktop collapsed transform on mobile */
+    }
+    
+    .sidebar.mobile-open {
+        left: 0;
+        box-shadow: 4px 0 24px rgba(0, 0, 0, 0.5);
+    }
+    
+    /* Overlay when sidebar is open */
+    .sidebar-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 998;
+        backdrop-filter: blur(4px);
+    }
+    
+    .sidebar-overlay.active {
+        display: block;
+    }
+    
+    .main-content {
+        margin-left: 0;
+        width: 100%;
+        padding-top: 0;
+    }
+    
+    /* Topbar adjustments - ensure padding accounts for mobile menu button */
+    .topbar {
+        padding: var(--space-3) var(--space-4);
+        margin-left: 0;
+        padding-left: calc(var(--space-4) + 44px + var(--space-3)); /* Space for hamburger menu */
+        margin-top: 0;
+    }
+    
+    /* Reset topbar padding when sidebar is collapsed (not applicable on mobile but prevent conflicts) */
+    .app-container.sidebar-collapsed .topbar {
+        padding-left: calc(var(--space-4) + 44px + var(--space-3)); /* Keep mobile menu spacing */
+    }
+    
+    .page-title {
+        font-size: 1.125rem;
+    }
+    
+    .page-subtitle {
+        font-size: 0.75rem;
+    }
+    
+    .timestamp {
+        font-size: 0.75rem;
+        padding: var(--space-2) var(--space-3);
+    }
+    
+    /* Metrics Grid - Single column on mobile */
+    .metrics-grid {
+        grid-template-columns: 1fr;
+        gap: var(--space-4);
+        padding: var(--space-4);
+        margin-bottom: var(--space-4);
+    }
+    
+    .metric-card {
+        padding: var(--space-5);
+    }
+    
+    /* View content - allow scrolling on mobile */
+    .view-content {
+        height: auto;
+        min-height: calc(100vh - 60px);
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+    
+    /* Chart Section */
+    .chart-section {
+        padding: var(--space-4);
+        margin-bottom: var(--space-4);
+        min-height: 300px;
+        flex-shrink: 0;
+    }
+    
+    .chart-container {
+        padding: var(--space-4);
+        min-height: 300px;
+        flex-shrink: 0;
+    }
+    
+    /* Control Grid */
     .control-grid {
         grid-template-columns: 1fr;
+        gap: var(--space-4);
+    }
+    
+    .control-card {
+        padding: var(--space-5);
+    }
+    
+    /* Settings Panel */
+    .settings-panel {
+        padding: var(--space-4);
+        margin-top: var(--space-6);
+    }
+    
+    .settings-form {
+        padding: 0;
+        margin-top: var(--space-4);
+    }
+    
+    /* Form Elements */
+    .form-group {
+        margin-bottom: var(--space-4);
+    }
+    
+    .form-input {
+        font-size: 16px; /* Prevents zoom on iOS */
+        padding: var(--space-3) var(--space-4);
     }
     
     .form-actions {
         flex-direction: column;
+        gap: var(--space-3);
+    }
+    
+    .form-btn {
+        width: 100%;
+        padding: var(--space-4);
+        font-size: 0.9375rem;
+    }
+    
+    /* View Content */
+    .view-content {
+        min-height: calc(100vh - 60px);
+        max-height: calc(100vh - 60px);
+        padding-top: 0;
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+    
+    .view-content > section {
+        padding: var(--space-4);
+        margin-top: 0;
+        margin-bottom: var(--space-6);
+    }
+    
+    .view-content > section:last-child {
+        margin-bottom: var(--space-4);
+    }
+    
+    /* Control Panel and Settings Panel spacing */
+    .control-panel {
+        margin-top: var(--space-4);
+        margin-bottom: var(--space-6);
+        padding: var(--space-4);
+    }
+    
+    .settings-panel {
+        margin-top: var(--space-6);
+        margin-bottom: var(--space-4);
+        padding: var(--space-4);
+    }
+    
+    .control-panel .section-header,
+    .settings-panel .section-header {
+        margin-bottom: var(--space-4);
+    }
+    
+    /* Ensure sections don't overlap */
+    .view-content > .control-panel + .settings-panel {
+        margin-top: var(--space-6);
+    }
+    
+    /* Section Headers */
+    .section-header {
+        margin-bottom: var(--space-4);
+    }
+    
+    .section-title {
+        font-size: 1.125rem;
+    }
+    
+    .section-description {
+        font-size: 0.8125rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .mobile-menu-toggle {
+        top: var(--space-3);
+        left: var(--space-3);
+    }
+    
+    /* Ensure sidebar toggle is hidden on small mobile */
+    .sidebar-toggle,
+    .sidebar-toggle-header {
+        display: none !important;
+    }
+    
+    .topbar {
+        padding: var(--space-3);
+        padding-left: calc(var(--space-3) + 44px + var(--space-2));
+        flex-wrap: wrap;
+        gap: var(--space-2);
+    }
+    
+    /* Reset topbar padding when sidebar is collapsed (not applicable on mobile but prevent conflicts) */
+    .app-container.sidebar-collapsed .topbar {
+        padding-left: calc(var(--space-3) + 44px + var(--space-2));
+    }
+    
+    .topbar-left {
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .topbar-right {
+        flex-shrink: 0;
+    }
+    
+    .page-title {
+        font-size: 1rem;
+    }
+    
+    .page-subtitle {
+        display: none; /* Hide subtitle on very small screens */
+    }
+    
+    .view-content > section {
+        padding: var(--space-3);
+    }
+    
+    .control-panel,
+    .settings-panel {
+        padding: var(--space-3);
+        margin-top: var(--space-3);
+    }
+    
+    .metrics-grid {
+        padding: var(--space-3);
+        gap: var(--space-3);
+    }
+    
+    .metric-value {
+        font-size: 1.75rem;
+    }
+    
+    .metric-unit {
+        font-size: 0.875rem;
+    }
+    
+    .chart-container {
+        padding: var(--space-3);
+        min-height: 250px;
+    }
+    
+    .form-input {
+        padding: var(--space-3);
+    }
+    
+    .btn-group {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .btn {
+        width: 100%;
     }
 }
 

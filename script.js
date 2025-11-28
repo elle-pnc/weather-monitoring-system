@@ -74,11 +74,11 @@ let fanAutoState = false;
 let activationTimer = null;
 let conditionMetSince = null;
 
-// Update timestamp
+// Update timestamp (12-hour format with AM/PM for Philippines)
 function updateTimestamp() {
     const now = new Date();
     const time = now.toLocaleTimeString('en-US', { 
-        hour12: false,
+        hour12: true,
         hour: '2-digit',
         minute: '2-digit',
         second: '2-digit'
@@ -280,7 +280,32 @@ function initializeChart() {
                             weight: '500'
                         },
                         maxRotation: 0,
-                        padding: 10
+                        padding: 8,
+                        maxTicksLimit: 10, // Limit number of visible labels to prevent overlap
+                        callback: function(value, index, ticks) {
+                            const label = this.getLabelForValue(value);
+                            const totalTicks = ticks.length;
+                            
+                            // When there are many data points, show fewer labels
+                            if (totalTicks > 12) {
+                                const step = Math.ceil(totalTicks / 8); // Show ~8 labels max
+                                if (index % step !== 0 && index !== ticks.length - 1) {
+                                    return '';
+                                }
+                            }
+                            
+                            // Remove seconds from label if it has them (for cleaner display)
+                            if (label.includes(':') && label.match(/:\d{2}:/)) {
+                                // Format: HH:MM:SS AM/PM -> HH:MM AM/PM
+                                const parts = label.split(':');
+                                if (parts.length >= 3) {
+                                    const ampm = parts[2].split(' ')[1] || '';
+                                    return parts[0] + ':' + parts[1] + (ampm ? ' ' + ampm : '');
+                                }
+                            }
+                            
+                            return label;
+                        }
                     },
                     grid: {
                         color: gridColor,
@@ -553,12 +578,6 @@ function updateFanStatus(state) {
 // Add data point to chart
 function addDataPoint(type, value) {
     const now = new Date();
-    const timeLabel = now.toLocaleTimeString('en-US', { 
-        hour12: false,
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit'
-    });
     
     if (type === 'temperature') {
         temperatureData.push(value);
@@ -573,11 +592,23 @@ function addDataPoint(type, value) {
     }
     
     // Update time labels (only when we have new data)
+    // Use adaptive format: HH:MM when many points, HH:MM:SS when few
     if (temperatureData.length === humidityData.length) {
+        const totalPoints = Math.max(temperatureData.length, humidityData.length);
+        const showSeconds = totalPoints <= 10; // Show seconds only when 10 or fewer points
+        
+        const timeLabel = now.toLocaleTimeString('en-US', { 
+            hour12: true,
+            hour: '2-digit',
+            minute: '2-digit',
+            second: showSeconds ? '2-digit' : undefined
+        });
+        
         timeLabels.push(timeLabel);
         if (timeLabels.length > maxDataPoints) {
             timeLabels.shift();
         }
+        
     }
     
     // Update chart
@@ -585,6 +616,7 @@ function addDataPoint(type, value) {
         dataChart.update('none');
     }
 }
+
 
 // Update connection status UI
 function updateConnectionStatus(connected) {
@@ -847,7 +879,15 @@ function switchView(view) {
     const navItems = document.querySelectorAll('.nav-item');
     
     if (view === 'dashboard') {
-        if (dashboardView) dashboardView.style.display = 'block';
+        if (dashboardView) {
+            dashboardView.style.display = 'block';
+            // Force chart resize when switching to dashboard
+            setTimeout(() => {
+                if (dataChart) {
+                    dataChart.resize();
+                }
+            }, 50);
+        }
         if (settingsView) settingsView.style.display = 'none';
         navItems.forEach(item => {
             if (item.getAttribute('href') === '#dashboard') {
@@ -872,7 +912,29 @@ function switchView(view) {
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', () => {
     console.log('Dashboard initialized');
-    initializeChart();
+    
+    // Initialize chart after a small delay to ensure layout is calculated
+    setTimeout(() => {
+        initializeChart();
+        // Force chart resize after initialization
+        if (dataChart) {
+            setTimeout(() => {
+                dataChart.resize();
+                console.log('Chart initialized and resized');
+            }, 200);
+        }
+    }, 150);
+    
+    // Handle window resize for chart
+    let resizeTimeout;
+    window.addEventListener('resize', () => {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(() => {
+            if (dataChart) {
+                dataChart.resize();
+            }
+        }, 250);
+    });
     
     // Set default client ID
     if (clientIdInput) {
@@ -913,7 +975,104 @@ document.addEventListener('DOMContentLoaded', () => {
             } else if (href === '#settings') {
                 switchView('settings');
             }
+            // Close mobile menu after navigation
+            closeMobileMenu();
         });
+    });
+    
+    // Sidebar toggle (Desktop)
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const sidebarToggleHeader = document.getElementById('sidebarToggleHeader');
+    const sidebar = document.getElementById('sidebar');
+    const appContainer = document.querySelector('.app-container');
+    
+    function toggleSidebar() {
+        // Only toggle on desktop (width > 768px)
+        if (window.innerWidth <= 768) {
+            return;
+        }
+        
+        if (sidebar && appContainer) {
+            sidebar.classList.toggle('collapsed');
+            // Update app container class for CSS selector
+            if (sidebar.classList.contains('collapsed')) {
+                appContainer.classList.add('sidebar-collapsed');
+            } else {
+                appContainer.classList.remove('sidebar-collapsed');
+            }
+            // Save preference
+            localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
+        }
+    }
+    
+    if (sidebarToggle) {
+        sidebarToggle.addEventListener('click', toggleSidebar);
+    }
+    
+    if (sidebarToggleHeader) {
+        sidebarToggleHeader.addEventListener('click', toggleSidebar);
+    }
+    
+    // Restore sidebar state from localStorage
+    if (sidebar && appContainer && window.innerWidth > 768) {
+        const savedState = localStorage.getItem('sidebarCollapsed');
+        if (savedState === 'true') {
+            sidebar.classList.add('collapsed');
+            appContainer.classList.add('sidebar-collapsed');
+        }
+    }
+    
+    // Mobile menu toggle
+    const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+    const sidebarClose = document.getElementById('sidebarClose');
+    const sidebarOverlay = document.createElement('div');
+    sidebarOverlay.className = 'sidebar-overlay';
+    document.body.appendChild(sidebarOverlay);
+    
+    function openMobileMenu() {
+        if (sidebar) {
+            sidebar.classList.add('mobile-open');
+            sidebarOverlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+    }
+    
+    function closeMobileMenu() {
+        if (sidebar) {
+            sidebar.classList.remove('mobile-open');
+            sidebarOverlay.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+    }
+    
+    if (mobileMenuToggle) {
+        mobileMenuToggle.addEventListener('click', openMobileMenu);
+    }
+    
+    if (sidebarClose) {
+        sidebarClose.addEventListener('click', closeMobileMenu);
+    }
+    
+    sidebarOverlay.addEventListener('click', closeMobileMenu);
+    
+    // Close menu on window resize if it becomes desktop size
+    window.addEventListener('resize', () => {
+        if (window.innerWidth > 768) {
+            closeMobileMenu();
+            // Remove mobile classes when switching to desktop
+            if (sidebar) {
+                sidebar.classList.remove('mobile-open');
+            }
+        } else {
+            // On mobile, ensure sidebar uses mobile behavior (not collapsed)
+            if (sidebar) {
+                // Remove collapsed class on mobile - use mobile-open instead
+                sidebar.classList.remove('collapsed');
+                if (appContainer) {
+                    appContainer.classList.remove('sidebar-collapsed');
+                }
+            }
+        }
     });
     
     // Auto-connect on load (optional - comment out if you want manual connection)
