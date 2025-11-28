@@ -11,14 +11,15 @@
 #define WIFI_PASSWORD "YOUR_WIFI_PASSWORD"
 
 // MQTT Broker Configuration
-// For HiveMQ Cloud: broker.hivemq.com, port 1883
-// For local Mosquitto: your-local-ip, port 1883
-#define MQTT_BROKER "broker.hivemq.com"
-#define MQTT_PORT 1883
+// For HiveMQ Cloud: Use your HiveMQ Cloud URL and port 8883 (TLS)
+// Example: 44ebcd60f3ba4b2c94aaaa1fe61d6205.s1.eu.hivemq.cloud
+#define MQTT_BROKER "44ebcd60f3ba4b2c94aaaa1fe61d6205.s1.eu.hivemq.cloud"
+#define MQTT_PORT 8883  // Use 8883 for TLS (HiveMQ Cloud), 1883 for non-TLS
 
-// MQTT Authentication (leave empty if not required)
-#define MQTT_USER ""
-#define MQTT_PASSWORD ""
+// MQTT Authentication (REQUIRED for HiveMQ Cloud)
+// Get credentials from your HiveMQ Cloud dashboard
+#define MQTT_USER "your-hivemq-username"
+#define MQTT_PASSWORD "your-hivemq-password"
 
 #endif
 

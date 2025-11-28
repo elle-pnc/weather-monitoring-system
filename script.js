@@ -28,6 +28,14 @@ const mqttUsernameInput = document.getElementById('mqttUsername');
 const mqttPasswordInput = document.getElementById('mqttPassword');
 const timestamp = document.getElementById('timestamp');
 
+// Weather DOM Elements
+const weatherCard = document.getElementById('weatherCard');
+const weatherIcon = document.getElementById('weatherIcon');
+const weatherIconContainer = document.getElementById('weatherIconContainer');
+const weatherTime = document.getElementById('weatherTime');
+const weatherStatus = document.getElementById('weatherStatus');
+const weatherLocation = document.getElementById('weatherLocation');
+
 // Automation DOM Elements
 const automationEnabled = document.getElementById('automationEnabled');
 const fanMode = document.getElementById('fanMode');
@@ -35,34 +43,22 @@ const modeDescription = document.getElementById('modeDescription');
 const currentTempSettings = document.getElementById('currentTempSettings');
 const currentHumSettings = document.getElementById('currentHumSettings');
 
-// Preset configurations for user-friendly modes
+// Preset configurations based on weather conditions
 const fanModePresets = {
     'very_hot': {
-        description: 'Fan turns on when temperature is very high (> 32°C) or humidity is very high (> 80%)',
-        tempOn: 32,
-        tempOff: 30,
-        tempCondition: 'above',
-        humOn: 80,
-        humOff: 75,
-        humCondition: 'above'
+        description: 'Fan turns on when weather is Hot & Dry or Sunny',
+        turnOnConditions: ['hot', 'sunny'],
+        turnOffConditions: ['cold']
     },
     'hot': {
-        description: 'Fan turns on when temperature is high (> 28°C) or humidity is high (> 70%)',
-        tempOn: 28,
-        tempOff: 26,
-        tempCondition: 'above',
-        humOn: 70,
-        humOff: 65,
-        humCondition: 'above'
+        description: 'Fan turns on when weather is Hot & Dry, Sunny, or Partly Cloudy',
+        turnOnConditions: ['hot', 'sunny', 'partly-cloudy'],
+        turnOffConditions: ['cold']
     },
     'always_on': {
-        description: 'Fan stays on regardless of temperature or humidity',
-        tempOn: -999,
-        tempOff: -999,
-        tempCondition: 'above',
-        humOn: -999,
-        humOff: -999,
-        humCondition: 'above'
+        description: 'Fan stays on regardless of weather conditions',
+        turnOnConditions: ['always'],
+        turnOffConditions: []
     }
 };
 
@@ -88,6 +84,13 @@ function updateTimestamp() {
 
 setInterval(updateTimestamp, 1000);
 updateTimestamp();
+
+// Update weather time every second
+setInterval(updateWeatherTime, 1000);
+updateWeatherTime();
+
+// Initialize weather display
+updateWeather();
 
 // Initialize Chart with High-Tech Dark Theme
 function initializeChart() {
@@ -531,6 +534,7 @@ function updateTemperature(value) {
     }
     currentTemp = value;
     checkAutomation();
+    updateWeather();
 }
 
 // Update humidity display
@@ -541,6 +545,187 @@ function updateHumidity(value) {
     }
     currentHum = value;
     checkAutomation();
+    updateWeather();
+}
+
+// Compute weather condition based on temperature and humidity
+// Meteorological principles:
+// - HIGH humidity (>70%) = Rainy/Cloudy (moisture in air = precipitation potential)
+// - LOW humidity (<50%) = Sunny/Clear (dry air = clear skies)
+// - MEDIUM humidity (50-70%) = Partly Cloudy (transitional)
+function computeWeatherCondition(temp, hum) {
+    if (temp === null || hum === null) {
+        return 'unknown';
+    }
+    
+    // Priority order: most specific conditions first
+    
+    // 1. Foggy: Very high humidity (>85%) - most specific condition
+    if (hum > 85) {
+        return 'foggy';
+    }
+    
+    // 2. Cold: Low temperature (<15°C) - temperature-based, regardless of humidity
+    if (temp < 15) {
+        return 'cold';
+    }
+    
+    // 3. Hot & Dry: High temp (>30°C) AND low humidity (<40%) - desert-like conditions
+    if (temp > 30 && hum < 40) {
+        return 'hot';
+    }
+    
+    // 4. Hot & Humid: High temp (>30°C) AND high humidity (>70%) - tropical/steamy
+    // This is hot weather with high moisture, but not necessarily raining
+    if (temp > 30 && hum > 70) {
+        return 'cloudy'; // Hot and humid = overcast/cloudy, not rainy
+    }
+    
+    // 5. Rainy: HIGH humidity (>70%) AND moderate temp (15-30°C)
+    // High humidity = moisture in air = rainy conditions
+    if (hum > 70 && temp >= 15 && temp <= 30) {
+        return 'rainy';
+    }
+    
+    // 6. Cloudy: Medium-high humidity (60-70%) AND moderate temp (15-30°C)
+    // Moderate humidity = cloudy but not necessarily raining
+    if (hum >= 60 && hum <= 70 && temp >= 15 && temp <= 30) {
+        return 'cloudy';
+    }
+    
+    // 7. Partly Cloudy: Medium humidity (50-60%) - transitional conditions
+    if (hum >= 50 && hum < 60) {
+        return 'partly-cloudy';
+    }
+    
+    // 8. Sunny: LOW humidity (<50%) AND moderate to high temp (>15°C)
+    // Low humidity = dry air = clear/sunny skies
+    if (hum < 50 && temp > 15) {
+        return 'sunny';
+    }
+    
+    // Default: Partly Cloudy (fallback for edge cases)
+    return 'partly-cloudy';
+}
+
+// Update weather display
+function updateWeather() {
+    const condition = computeWeatherCondition(currentTemp, currentHum);
+    
+    // Update weather location (top label)
+    if (weatherLocation) {
+        weatherLocation.textContent = 'Weather';
+    }
+    
+    // Update weather status text (bottom - like date in clock widget)
+    // Store condition for date formatting
+    if (weatherStatus) {
+        const statusText = {
+            'sunny': 'Sunny',
+            'cloudy': 'Cloudy',
+            'partly-cloudy': 'Partly Cloudy',
+            'rainy': 'Rainy',
+            'foggy': 'Foggy',
+            'hot': 'Hot & Dry',
+            'cold': 'Cold',
+            'unknown': 'Unknown'
+        };
+        const conditionText = statusText[condition] || 'Unknown';
+        // Update status, date will be added by updateWeatherTime
+        weatherStatus.dataset.condition = conditionText;
+        // Update immediately with date
+        updateWeatherTime();
+    }
+    
+    // Update weather card class for styling
+    if (weatherCard) {
+        // Remove all weather condition classes
+        weatherCard.classList.remove('weather-sunny', 'weather-cloudy', 'weather-partly-cloudy', 
+                                     'weather-rainy', 'weather-foggy', 'weather-hot', 'weather-cold');
+        // Add current condition class
+        if (condition !== 'unknown') {
+            weatherCard.classList.add(`weather-${condition}`);
+        }
+    }
+    
+    // Update weather icon - load SVG based on condition (decorative, top-right)
+    if (weatherIcon && weatherIconContainer) {
+        // Map condition names to actual SVG file names
+        const iconMap = {
+            'sunny': 'Sunny.svg',
+            'cloudy': 'Cloudy.svg',
+            'partly-cloudy': 'Partly Cloudy.svg',
+            'rainy': 'Rainy.svg',
+            'foggy': 'Foggy.svg',
+            'hot': 'Hot and Dry.svg',
+            'cold': 'Cold.svg',
+            'unknown': null
+        };
+        
+        const iconFileName = iconMap[condition];
+        
+        if (iconFileName) {
+            // Load SVG file
+            fetch(iconFileName)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Failed to load ${iconFileName}`);
+                    }
+                    return response.text();
+                })
+                .then(svgContent => {
+                    // Replace the icon content with the loaded SVG
+                    weatherIcon.innerHTML = svgContent;
+                    // Ensure SVG scales properly
+                    const svg = weatherIcon.querySelector('svg');
+                    if (svg) {
+                        svg.setAttribute('width', '48');
+                        svg.setAttribute('height', '48');
+                        svg.setAttribute('viewBox', svg.getAttribute('viewBox') || '0 0 24 24');
+                        svg.style.fill = 'currentColor';
+                        svg.style.color = 'currentColor';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading weather icon:', error);
+                    // Keep default icon on error
+                });
+        }
+    }
+}
+
+// Update real-world time in weather card (clock widget style)
+function updateWeatherTime() {
+    if (weatherTime) {
+        const now = new Date();
+        // Format: HH:MM AM/PM (like clock widget)
+        const hours = now.getHours();
+        const minutes = now.getMinutes();
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        const displayHours = hours % 12 || 12;
+        const timeString = `${displayHours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')} ${ampm}`;
+        weatherTime.textContent = timeString;
+    }
+    
+    // Update date below status (like clock widget)
+    if (weatherStatus) {
+        const now = new Date();
+        const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const dayName = days[now.getDay()];
+        const day = now.getDate();
+        const month = months[now.getMonth()];
+        const dateString = `${dayName}, ${day} ${month}`;
+        
+        // Get weather condition from dataset or use current text
+        const condition = weatherStatus.dataset.condition || weatherStatus.textContent.split(' • ')[0];
+        // Combine status and date
+        if (condition && condition !== '--' && condition !== 'Unknown') {
+            weatherStatus.textContent = `${condition} • ${dateString}`;
+        } else {
+            weatherStatus.textContent = dateString;
+        }
+    }
 }
 
 // Update fan status with visual indicator
@@ -682,21 +867,37 @@ function applyFanMode(mode) {
         modeDescription.textContent = preset.description;
     }
 
-    // Update current settings display
+    // Update current settings display based on weather conditions
     if (currentTempSettings && currentHumSettings) {
         if (mode === 'always_on') {
             currentTempSettings.textContent = 'Always ON';
             currentHumSettings.textContent = 'Always ON';
         } else {
-            const tempCondSymbol = preset.tempCondition === 'below' ? '<' : '>';
-            const humCondSymbol = preset.humCondition === 'below' ? '<' : '>';
-            currentTempSettings.textContent = `ON: ${tempCondSymbol} ${preset.tempOn}°C, OFF: ${tempCondSymbol === '>' ? '<' : '>'} ${preset.tempOff}°C`;
-            currentHumSettings.textContent = `ON: ${humCondSymbol} ${preset.humOn}%, OFF: ${humCondSymbol === '>' ? '<' : '>'} ${preset.humOff}%`;
+            const onConditions = preset.turnOnConditions.map(c => {
+                const names = {
+                    'hot': 'Hot & Dry',
+                    'sunny': 'Sunny',
+                    'partly-cloudy': 'Partly Cloudy',
+                    'cloudy': 'Cloudy',
+                    'rainy': 'Rainy'
+                };
+                return names[c] || c;
+            }).join(', ');
+            
+            const offConditions = preset.turnOffConditions.map(c => {
+                const names = {
+                    'cold': 'Cold'
+                };
+                return names[c] || c;
+            }).join(', ') || 'None';
+            
+            currentTempSettings.textContent = `Turns ON: ${onConditions}`;
+            currentHumSettings.textContent = `Turns OFF: ${offConditions}`;
         }
     }
 }
 
-// Check automation conditions using hysteresis (professional approach)
+// Check automation conditions based on weather conditions
 function checkAutomation() {
     if (!automationActive) {
         console.log('🔍 Automation check skipped: automation not active');
@@ -710,8 +911,6 @@ function checkAutomation() {
         return;
     }
     
-    console.log(`🔍 Automation check: mode=${mode}, temp=${currentTemp}°C, hum=${currentHum}%, fanState=${fanAutoState}`);
-
     // Always ON mode - works even without sensor data
     if (mode === 'always_on') {
         if (!fanAutoState) {
@@ -732,63 +931,48 @@ function checkAutomation() {
         return;
     }
 
-    // For other modes, require sensor data
+    // For other modes, require sensor data to compute weather condition
     if (currentTemp === null || currentHum === null) {
         return;
     }
 
-    // Get thresholds from preset
-    const tempThreshOn = preset.tempOn;
-    const humThreshOn = preset.humOn;
-    const tempCondOn = preset.tempCondition;
-    const humCondOn = preset.humCondition;
+    // Get current weather condition
+    const weatherCondition = computeWeatherCondition(currentTemp, currentHum);
+    console.log(`🌤️ Automation check: mode=${mode}, weather=${weatherCondition}, temp=${currentTemp}°C, hum=${currentHum}%, fanState=${fanAutoState}`);
 
-    const tempThreshOff = preset.tempOff;
-    const humThreshOff = preset.humOff;
-    const tempCondOff = preset.tempCondition;
-    const humCondOff = preset.humCondition;
-
-    // Check if conditions are met for turning ON (using ON thresholds)
-    const tempOnMet = tempCondOn === 'below' ? currentTemp < tempThreshOn : currentTemp > tempThreshOn;
-    const humOnMet = humCondOn === 'below' ? currentHum < humThreshOn : currentHum > humThreshOn;
-    const shouldTurnOn = tempOnMet || humOnMet;
-
-    // Check if conditions are met for turning OFF (using OFF thresholds)
-    const tempOffMet = tempCondOff === 'below' ? currentTemp > tempThreshOff : currentTemp < tempThreshOff;
-    const humOffMet = humCondOff === 'below' ? currentHum > humThreshOff : currentHum < humThreshOff;
-    const shouldTurnOff = tempOffMet || humOffMet;
+    // Check if weather condition should turn fan ON
+    const shouldTurnOn = preset.turnOnConditions.includes(weatherCondition) || preset.turnOnConditions.includes('always');
     
-    console.log(`🔍 Conditions: tempOn=${tempOnMet} (${currentTemp} ${tempCondOn} ${tempThreshOn}), humOn=${humOnMet} (${currentHum} ${humCondOn} ${humThreshOn})`);
-    console.log(`🔍 Should turn ON: ${shouldTurnOn}, Should turn OFF: ${shouldTurnOff}, Current fan state: ${fanAutoState}`);
+    // Check if weather condition should turn fan OFF
+    const shouldTurnOff = preset.turnOffConditions.includes(weatherCondition);
+    
+    console.log(`🔍 Should turn ON: ${shouldTurnOn} (weather: ${weatherCondition}), Should turn OFF: ${shouldTurnOff}, Current fan state: ${fanAutoState}`);
 
-    // Hysteresis logic: Use different thresholds for ON and OFF
+    // Turn ON logic with delay to prevent rapid cycling
     if (shouldTurnOn && !fanAutoState) {
         // Condition met to turn ON - start delay timer for noise filtering
         if (conditionMetSince === null) {
             conditionMetSince = Date.now();
-            const delay = 1000; // 1 second delay for sensor noise filter (reduced from 2s)
+            const delay = 2000; // 2 second delay for weather condition stability
             
-            console.log(`⏱️ Starting activation timer (${delay}ms delay) - Conditions met for turning ON`);
+            console.log(`⏱️ Starting activation timer (${delay}ms delay) - Weather condition: ${weatherCondition}`);
             
             // Clear any existing timer
             if (activationTimer) {
                 clearTimeout(activationTimer);
             }
             
-            // Set timer to activate fan after short delay (sensor noise filter)
+            // Set timer to activate fan after delay
             activationTimer = setTimeout(() => {
-                // Double-check condition is still met (hysteresis ON threshold)
-                const stillOn = (tempCondOn === 'below' ? currentTemp < tempThreshOn : currentTemp > tempThreshOn) ||
-                               (humCondOn === 'below' ? currentHum < humThreshOn : currentHum > humThreshOn);
+                // Re-check weather condition to ensure it's still valid
+                const currentWeather = computeWeatherCondition(currentTemp, currentHum);
+                const stillOn = preset.turnOnConditions.includes(currentWeather) || preset.turnOnConditions.includes('always');
+                const notOff = !preset.turnOffConditions.includes(currentWeather);
                 
-                // Also check that OFF condition is not met
-                const notOff = !((tempCondOff === 'below' ? currentTemp > tempThreshOff : currentTemp < tempThreshOff) ||
-                                (humCondOff === 'below' ? currentHum > humThreshOff : currentHum < humThreshOff));
-                
-                console.log(`⏱️ Timer fired - stillOn: ${stillOn}, notOff: ${notOff}, fanAutoState: ${fanAutoState}, automationActive: ${automationActive}`);
+                console.log(`⏱️ Timer fired - weather: ${currentWeather}, stillOn: ${stillOn}, notOff: ${notOff}, fanAutoState: ${fanAutoState}`);
                 
                 if (stillOn && notOff && !fanAutoState && automationActive) {
-                    console.log(`✅ Automation: Activating fan (${mode} mode - threshold met)`);
+                    console.log(`✅ Automation: Activating fan (${mode} mode - weather: ${currentWeather})`);
                     sendFanCommand('ON', true);
                 } else {
                     console.log(`❌ Timer fired but conditions not met - canceling activation`);
@@ -799,7 +983,7 @@ function checkAutomation() {
             console.log(`⏱️ Activation timer already running (started ${Date.now() - conditionMetSince}ms ago)`);
         }
     } else if (shouldTurnOff && fanAutoState) {
-        // Condition met to turn OFF (hysteresis OFF threshold) - immediate
+        // Condition met to turn OFF - immediate (cold weather)
         if (conditionMetSince !== null) {
             conditionMetSince = null;
             if (activationTimer) {
@@ -808,8 +992,7 @@ function checkAutomation() {
             }
         }
         
-        // Turn off immediately when OFF threshold is met (hysteresis prevents rapid cycling)
-        console.log(`Automation: Deactivating fan (${mode} mode - OFF threshold met)`);
+        console.log(`Automation: Deactivating fan (${mode} mode - weather: ${weatherCondition})`);
         sendFanCommand('OFF', true);
     } else if (!shouldTurnOn && conditionMetSince !== null) {
         // Condition no longer met for turning ON - cancel timer
@@ -1075,6 +1258,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
-    // Auto-connect on load (optional - comment out if you want manual connection)
-    // connectToMQTT();
+    // Auto-connect on load with pre-filled credentials
+    // Wait a moment for DOM to be fully ready, then auto-connect
+    setTimeout(() => {
+        if (brokerUrlInput && brokerUrlInput.value && mqttUsernameInput && mqttUsernameInput.value && mqttPasswordInput && mqttPasswordInput.value) {
+            console.log('🔄 Auto-connecting to MQTT broker with saved credentials...');
+            connectToMQTT();
+        }
+    }, 500);
 });

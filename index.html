@@ -101,6 +101,28 @@
 
                 <!-- Metrics Grid -->
             <section class="metrics-grid">
+                <div class="metric-card weather-card" id="weatherCard">
+                    <div class="weather-location" id="weatherLocation">Weather</div>
+                    <div class="weather-time" id="weatherTime">--:-- --</div>
+                    <div class="weather-status" id="weatherStatus">--</div>
+                    <div class="weather-icon-container" id="weatherIconContainer">
+                        <div class="weather-icon" id="weatherIcon">
+                            <!-- SVG will be loaded dynamically based on weather condition -->
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="5"/>
+                                <line x1="12" y1="1" x2="12" y2="3"/>
+                                <line x1="12" y1="21" x2="12" y2="23"/>
+                                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                                <line x1="1" y1="12" x2="3" y2="12"/>
+                                <line x1="21" y1="12" x2="23" y2="12"/>
+                                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+                                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="metric-card temp-card">
                     <div class="metric-header">
                         <div class="metric-icon temp-icon">
@@ -290,7 +312,7 @@
                                 </svg>
                                 <span>Username (Required for HiveMQ Cloud)</span>
                             </label>
-                            <input type="text" id="mqttUsername" class="form-input" placeholder="Enter your HiveMQ Cloud username">
+                            <input type="text" id="mqttUsername" class="form-input" value="eru_WMS" placeholder="Enter your HiveMQ Cloud username">
                         </div>
                         <div class="form-group">
                             <label for="mqttPassword" class="form-label">
@@ -300,7 +322,7 @@
                                 </svg>
                                 <span>Password (Required for HiveMQ Cloud)</span>
                             </label>
-                            <input type="password" id="mqttPassword" class="form-input" placeholder="Enter your HiveMQ Cloud password">
+                            <input type="password" id="mqttPassword" class="form-input" value="Wms_2025" placeholder="Enter your HiveMQ Cloud password">
                         </div>
                         <div class="form-actions">
                             <button id="connectBtn" class="form-btn btn-primary">

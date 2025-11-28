@@ -10,6 +10,7 @@
  */
 
 #include <WiFi.h>
+#include <WiFiClientSecure.h>
 #include <PubSubClient.h>
 #include <DHT.h>
 #include <ArduinoJson.h>
@@ -24,7 +25,13 @@
 
 // ==================== GLOBAL OBJECTS ====================
 DHT dht(DHT_PIN, DHT_TYPE);
-WiFiClient espClient;
+#if MQTT_PORT == 8883
+  // Use secure client for TLS (HiveMQ Cloud)
+  WiFiClientSecure espClient;
+#else
+  // Use regular client for non-TLS connections
+  WiFiClient espClient;
+#endif
 PubSubClient mqttClient(espClient);
 
 // ==================== SHARED DATA (Protected by Mutex) ====================
@@ -78,6 +85,14 @@ void setup() {
   // Configure MQTT
   mqttClient.setServer(MQTT_BROKER, MQTT_PORT);
   mqttClient.setCallback(mqttCallback);
+  mqttClient.setKeepAlive(60);
+  mqttClient.setSocketTimeout(15);
+  
+  // Configure TLS for secure connections (HiveMQ Cloud)
+  #if MQTT_PORT == 8883
+    espClient.setInsecure(); // Skip certificate validation for HiveMQ Cloud
+    Serial.println("[MQTT] TLS enabled for secure connection");
+  #endif
   
   // Connect to WiFi first
   connectToWiFi();
@@ -210,16 +225,14 @@ void mqttPublishTask(void* parameter) {
       snprintf(humMsg, sizeof(humMsg), "%.2f", hum);
       mqttClient.publish("weather/humidity", humMsg);
       
-      // Publish status
+      // Publish status (JSON format for dashboard)
       StaticJsonDocument<200> statusDoc;
-      statusDoc["connected"] = true;
       statusDoc["temperature"] = temp;
       statusDoc["humidity"] = hum;
-      statusDoc["fan"] = fanState;
       
       char statusMsg[200];
       serializeJson(statusDoc, statusMsg);
-      mqttClient.publish("weather/status", statusMsg);
+      mqttClient.publish("weather/status", statusMsg, true); // Retain message
       
       Serial.printf("[MQTT] Published: Temp=%.2f, Hum=%.2f%%\n", temp, hum);
     }
@@ -287,17 +300,41 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
   Serial.printf("[MQTT] Message received on topic: %s\n", topic);
   Serial.printf("[MQTT] Message: %s\n", message);
   
-  // Handle fan control
+  // Handle fan control commands
   if (strcmp(topic, "weather/control/fan") == 0) {
     if (xSemaphoreTake(dataMutex, portMAX_DELAY) == pdTRUE) {
-      if (strcmp(message, "ON") == 0 || strcmp(message, "1") == 0) {
-        fanState = true;
-        Serial.println("[Control] Fan turned ON");
-      } else if (strcmp(message, "OFF") == 0 || strcmp(message, "0") == 0) {
-        fanState = false;
-        Serial.println("[Control] Fan turned OFF");
+      bool newState = false;
+      if (strcmp(message, "ON") == 0 || strcmp(message, "1") == 0 || strcmp(message, "true") == 0) {
+        newState = true;
+        Serial.println("[Control] Fan command: ON");
+      } else if (strcmp(message, "OFF") == 0 || strcmp(message, "0") == 0 || strcmp(message, "false") == 0) {
+        newState = false;
+        Serial.println("[Control] Fan command: OFF");
+      }
+      
+      if (fanState != newState) {
+        fanState = newState;
+        Serial.printf("[Control] Fan state changed to: %s\n", fanState ? "ON" : "OFF");
       }
       xSemaphoreGive(dataMutex);
+    }
+  }
+  
+  // Handle fan status updates from dashboard (optional - for synchronization)
+  if (strcmp(topic, "weather/fan/status") == 0) {
+    // Parse JSON status message
+    StaticJsonDocument<100> doc;
+    DeserializationError error = deserializeJson(doc, message);
+    
+    if (!error && doc.containsKey("status")) {
+      bool statusValue = doc["status"];
+      if (xSemaphoreTake(dataMutex, portMAX_DELAY) == pdTRUE) {
+        if (fanState != statusValue) {
+          fanState = statusValue;
+          Serial.printf("[Status] Fan status synchronized: %s\n", fanState ? "ON" : "OFF");
+        }
+        xSemaphoreGive(dataMutex);
+      }
     }
   }
 }
@@ -335,18 +372,53 @@ void connectToMQTT() {
     String clientId = "ESP32-Weather-";
     clientId += String(random(0xffff), HEX);
     
-    // Attempt connection
-    if (mqttClient.connect(clientId.c_str(), MQTT_USER, MQTT_PASSWORD)) {
+    // Attempt connection with authentication
+    bool connected = false;
+    
+    // Check if authentication is required
+    if (strlen(MQTT_USER) > 0 && strlen(MQTT_PASSWORD) > 0) {
+      Serial.print(" (with auth)...");
+      connected = mqttClient.connect(clientId.c_str(), MQTT_USER, MQTT_PASSWORD);
+    } else {
+      Serial.print(" (no auth)...");
+      connected = mqttClient.connect(clientId.c_str());
+    }
+    
+    if (connected) {
       Serial.println(" Connected!");
       
       // Subscribe to control topics
-      mqttClient.subscribe("weather/control/fan");
-      Serial.println("[MQTT] Subscribed to: weather/control/fan");
+      if (mqttClient.subscribe("weather/control/fan")) {
+        Serial.println("[MQTT] Subscribed to: weather/control/fan");
+      } else {
+        Serial.println("[MQTT] ERROR: Failed to subscribe to weather/control/fan");
+      }
+      
+      // Subscribe to fan status topic (for synchronization with dashboard)
+      if (mqttClient.subscribe("weather/fan/status")) {
+        Serial.println("[MQTT] Subscribed to: weather/fan/status");
+      } else {
+        Serial.println("[MQTT] ERROR: Failed to subscribe to weather/fan/status");
+      }
       
       mqttConnected = true;
     } else {
       Serial.print(" Failed, rc=");
       Serial.print(mqttClient.state());
+      Serial.print(" (");
+      switch (mqttClient.state()) {
+        case -4: Serial.print("Connection timeout"); break;
+        case -3: Serial.print("Connection lost"); break;
+        case -2: Serial.print("Connect failed"); break;
+        case -1: Serial.print("Disconnected"); break;
+        case 1: Serial.print("Bad protocol version"); break;
+        case 2: Serial.print("Bad client ID"); break;
+        case 3: Serial.print("Unavailable"); break;
+        case 4: Serial.print("Bad credentials"); break;
+        case 5: Serial.print("Unauthorized"); break;
+        default: Serial.print("Unknown error"); break;
+      }
+      Serial.println(")");
       Serial.println(" Retrying in 5 seconds...");
       delay(5000);
     }

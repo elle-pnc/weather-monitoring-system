@@ -206,11 +206,11 @@
             </div>
             <div class="form-group">
                 <label class="form-label">Username (Required for HiveMQ Cloud)</label>
-                <input type="text" id="mqttUsername" class="form-input" placeholder="Enter your HiveMQ Cloud username">
+                <input type="text" id="mqttUsername" class="form-input" value="eru_WMS" placeholder="Enter your HiveMQ Cloud username">
             </div>
             <div class="form-group">
                 <label class="form-label">Password (Required for HiveMQ Cloud)</label>
-                <input type="password" id="mqttPassword" class="form-input" placeholder="Enter your HiveMQ Cloud password">
+                <input type="password" id="mqttPassword" class="form-input" value="Wms_2025" placeholder="Enter your HiveMQ Cloud password">
             </div>
             <div class="btn-group">
                 <button class="btn btn-primary" id="connectBtn">Connect</button>
@@ -255,11 +255,19 @@
                     </label>
                     <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
                         <input type="radio" name="scenario" value="hot" style="cursor: pointer;">
-                        <span>🔥 Hot (28-35°C, 70-85%)</span>
+                        <span>🔥 Hot & Dry (32-38°C, 30-40%)</span>
                     </label>
                     <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
                         <input type="radio" name="scenario" value="cold" style="cursor: pointer;">
-                        <span>❄️ Cold (15-20°C, 40-55%)</span>
+                        <span>❄️ Cold (10-14°C, 40-60%)</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                        <input type="radio" name="scenario" value="rainy" style="cursor: pointer;">
+                        <span>🌧️ Rainy (20-28°C, 72-85%)</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                        <input type="radio" name="scenario" value="sunny" style="cursor: pointer;">
+                        <span>☀️ Sunny (22-28°C, 30-48%)</span>
                     </label>
                     <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
                         <input type="radio" name="scenario" value="custom" style="cursor: pointer;">
@@ -494,28 +502,46 @@
             publishMessage('weather/status', JSON.stringify(status));
         }
 
-        // Scenario presets
+        // Scenario presets - aligned with weather computation logic
         const scenarioPresets = {
             'normal': {
                 tempMin: 20,
                 tempMax: 25,
                 humMin: 50,
                 humMax: 65,
-                description: 'Normal conditions'
+                description: 'Normal conditions (Partly Cloudy)'
             },
             'hot': {
-                tempMin: 28,
-                tempMax: 35,
-                humMin: 70,
-                humMax: 85,
-                description: 'Hot conditions (triggers fan)'
+                // Hot & Dry: High temp (>30°C) AND low humidity (<40%)
+                tempMin: 32,
+                tempMax: 38,
+                humMin: 30,
+                humMax: 40,
+                description: 'Hot & Dry conditions (Hot weather)'
             },
             'cold': {
-                tempMin: 15,
-                tempMax: 20,
+                // Cold: Low temperature (<15°C)
+                tempMin: 10,
+                tempMax: 14,
                 humMin: 40,
-                humMax: 55,
+                humMax: 60,
                 description: 'Cold conditions'
+            },
+            'rainy': {
+                // Rainy: High humidity (>70%) AND moderate temp (15-30°C)
+                tempMin: 20,
+                tempMax: 28,
+                humMin: 72,
+                humMax: 85,
+                description: 'Rainy conditions (High humidity)'
+            },
+            'sunny': {
+                // Sunny: Low humidity (<50%) AND temp >15°C
+                tempMin: 22,
+                tempMax: 28,
+                humMin: 30,
+                humMax: 48,
+                description: 'Sunny conditions (Low humidity)'
             }
         };
 

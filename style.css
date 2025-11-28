@@ -241,7 +241,8 @@ body {
 .main-content {
     flex: 1;
     margin-left: 260px;
-    min-height: 100vh;
+    height: 100vh;
+    max-height: 100vh;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -256,7 +257,7 @@ body {
 .topbar {
     background: var(--bg-elevated);
     border-bottom: 1px solid var(--border-base);
-    padding: var(--space-4) var(--space-8);
+    padding: var(--space-3) var(--space-8);
     padding-left: var(--space-8);
     display: flex;
     justify-content: space-between;
@@ -305,8 +306,22 @@ body {
     flex: 1;
     display: flex;
     flex-direction: column;
-    height: calc(100vh - 0px);
+    min-height: 0;
+}
+
+/* Dashboard view - no scroll, fit on screen */
+#dashboardView {
+    height: 100vh;
+    max-height: 100vh;
     overflow: hidden;
+}
+
+/* Settings view - allow scrolling */
+#settingsView {
+    height: auto;
+    min-height: 100vh;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 .view-content > section {
@@ -344,16 +359,18 @@ body {
 /* ==================== METRICS GRID ==================== */
 .metrics-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: var(--space-4);
-    margin-bottom: var(--space-4);
-    padding: var(--space-4) var(--space-8);
+    grid-template-columns: 1.5fr 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: var(--space-2);
+    margin-bottom: var(--space-2);
+    padding: var(--space-3) var(--space-6);
     max-width: 1400px;
     width: 100%;
     margin-left: auto;
     margin-right: auto;
     flex-shrink: 0;
 }
+
 
 .metric-card {
     background: var(--bg-elevated);
@@ -363,6 +380,101 @@ body {
     transition: all var(--transition-base);
     position: relative;
     overflow: hidden;
+}
+
+/* Smaller cards (temp, humidity, fan) */
+.temp-card,
+.hum-card {
+    padding: var(--space-2);
+    min-height: 0;
+}
+
+.fan-card {
+    padding: var(--space-2);
+    min-height: 0;
+}
+
+/* Smaller metric values in compact cards */
+.temp-card .metric-value,
+.hum-card .metric-value,
+.fan-card .metric-value {
+    font-size: 1.25rem;
+}
+
+.temp-card .metric-unit,
+.hum-card .metric-unit {
+    font-size: 0.75rem;
+}
+
+.temp-card .metric-label,
+.hum-card .metric-label,
+.fan-card .metric-label {
+    font-size: 0.6875rem;
+}
+
+.temp-card .metric-icon,
+.hum-card .metric-icon,
+.fan-card .metric-icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 8px;
+}
+
+.temp-card .metric-icon svg,
+.hum-card .metric-icon svg,
+.fan-card .metric-icon svg {
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+}
+
+/* Compact headers and footers */
+.temp-card .metric-header,
+.hum-card .metric-header,
+.fan-card .metric-header {
+    margin-bottom: var(--space-1);
+}
+
+.temp-card .metric-footer,
+.hum-card .metric-footer,
+.fan-card .metric-footer {
+    margin-top: var(--space-1);
+}
+
+.temp-card .metric-value-group,
+.hum-card .metric-value-group,
+.fan-card .metric-value-group {
+    padding: var(--space-1) 0;
+}
+
+/* Weather card - spans both rows, left side - Clock widget style */
+.weather-card {
+    padding: var(--space-4);
+    grid-row: 1 / 3;
+    grid-column: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    min-height: 0;
+    text-align: center;
+    position: relative;
+}
+
+/* Other metric cards - arranged in grid */
+.temp-card {
+    grid-row: 1;
+    grid-column: 2;
+}
+
+.hum-card {
+    grid-row: 1;
+    grid-column: 3;
+}
+
+.fan-card {
+    grid-row: 2;
+    grid-column: 2 / 4;
 }
 
 .metric-card::before {
@@ -401,18 +513,20 @@ body {
 .metric-icon {
     width: 32px;
     height: 32px;
-    border-radius: 6px;
+    border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
     background: var(--bg-hover);
     border: 1px solid var(--border-base);
     flex-shrink: 0;
+    overflow: hidden;
 }
 
 .metric-icon svg {
     width: 18px;
     height: 18px;
+    border-radius: 4px;
 }
 
 .temp-icon {
@@ -458,6 +572,115 @@ body {
     to {
         transform: rotate(360deg);
     }
+}
+
+/* Weather Card Styles */
+.weather-card {
+    position: relative;
+}
+
+.weather-card::before {
+    background: var(--accent-blue);
+}
+
+.weather-icon {
+    color: var(--accent-blue);
+    transition: color var(--transition-base);
+}
+
+.weather-card.weather-sunny .weather-icon {
+    color: #ffa500;
+}
+
+.weather-card.weather-cloudy .weather-icon {
+    color: #6c757d;
+}
+
+.weather-card.weather-rainy .weather-icon {
+    color: #4a90e2;
+}
+
+.weather-card.weather-foggy .weather-icon {
+    color: #9e9e9e;
+}
+
+.weather-card.weather-hot .weather-icon {
+    color: #ff6b6b;
+}
+
+.weather-card.weather-cold .weather-icon {
+    color: #87ceeb;
+}
+
+/* Weather location (top) - like "Athens" in clock widget */
+.weather-location {
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    text-align: center;
+    margin-bottom: auto;
+    padding-top: var(--space-2);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Weather time (center) - large digital clock style */
+.weather-time {
+    font-size: 3.5rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    font-family: var(--font-mono);
+    text-align: center;
+    padding: var(--space-3) 0;
+    margin: var(--space-4) 0;
+    line-height: 1;
+    letter-spacing: 0.05em;
+}
+
+/* Weather status (bottom) - like date in clock widget */
+.weather-status {
+    font-size: 0.8125rem;
+    font-weight: 400;
+    color: var(--text-secondary);
+    text-align: center;
+    margin-top: auto;
+    padding-bottom: var(--space-3);
+    text-transform: capitalize;
+    line-height: 1.4;
+}
+
+/* Weather icon container - positioned absolutely or as overlay */
+.weather-icon-container {
+    position: absolute;
+    top: var(--space-3);
+    right: var(--space-3);
+    opacity: 0.3;
+    transition: opacity var(--transition-base);
+}
+
+.weather-card:hover .weather-icon-container {
+    opacity: 0.5;
+}
+
+/* Weather icon - smaller, decorative, soft edges */
+.weather-card .weather-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+.weather-card .weather-icon svg {
+    width: 48px;
+    height: 48px;
+    color: var(--text-tertiary);
+    border-radius: 12px;
+}
+
+#weatherStatus {
+    color: var(--text-secondary);
+    font-size: 0.8125rem;
+    text-transform: capitalize;
 }
 
 .metric-label {
@@ -598,17 +821,18 @@ body {
     flex: 1;
     display: flex;
     flex-direction: column;
-    padding: 0 var(--space-8) var(--space-6) var(--space-8);
+    padding: 0 var(--space-8) var(--space-4) var(--space-8);
     max-width: 1400px;
     width: 100%;
     margin-left: auto;
     margin-right: auto;
     min-height: 0;
     overflow: hidden;
+    padding-bottom: var(--space-4);
 }
 
 .chart-section .section-header {
-    margin-bottom: var(--space-4);
+    margin-bottom: var(--space-2);
     flex-shrink: 0;
 }
 
@@ -616,7 +840,7 @@ body {
     background: var(--bg-elevated);
     border: 1px solid var(--border-base);
     border-radius: 12px;
-    padding: var(--space-6);
+    padding: var(--space-4);
     flex: 1;
     min-height: 0;
     display: flex;
@@ -1108,8 +1332,13 @@ body {
     }
     
     .metrics-grid {
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        grid-template-columns: 1.5fr 1fr;
         gap: var(--space-4);
+    }
+    
+    .weather-card {
+        grid-row: 1 / 3;
+        min-height: 280px;
     }
 }
 
@@ -1206,9 +1435,52 @@ body {
     /* Metrics Grid - Single column on mobile */
     .metrics-grid {
         grid-template-columns: 1fr;
-        gap: var(--space-4);
+        grid-template-rows: auto;
+        gap: var(--space-3);
+        padding: var(--space-3);
+        margin-bottom: var(--space-3);
+    }
+    
+    .weather-card {
+        grid-row: auto;
+        grid-column: 1;
+        min-height: 240px;
         padding: var(--space-4);
-        margin-bottom: var(--space-4);
+    }
+    
+    .temp-card,
+    .hum-card,
+    .fan-card {
+        grid-column: 1;
+        grid-row: auto;
+    }
+    
+    /* Weather card mobile adjustments */
+    .weather-card .weather-icon {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .weather-card .weather-icon svg {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .weather-time {
+        font-size: 2.5rem;
+    }
+    
+    .weather-location {
+        font-size: 0.875rem;
+    }
+    
+    .weather-status {
+        font-size: 0.75rem;
+    }
+    
+    .weather-icon-container {
+        top: var(--space-2);
+        right: var(--space-2);
     }
     
     .metric-card {
@@ -1223,16 +1495,34 @@ body {
         overflow-x: hidden;
     }
     
+    /* Dashboard view - scrollable on mobile */
+    #dashboardView {
+        height: auto;
+        max-height: none;
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+    
+    /* Settings view - scrollable on mobile */
+    #settingsView {
+        height: auto;
+        min-height: calc(100vh - 60px);
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+    
     /* Chart Section */
     .chart-section {
         padding: var(--space-4);
-        margin-bottom: var(--space-4);
+        padding-bottom: calc(var(--space-8) + 80px); /* Extra space for mobile scrolling */
+        margin-bottom: calc(var(--space-6) + 40px); /* Extra margin to ensure full visibility */
         min-height: 300px;
         flex-shrink: 0;
     }
     
     .chart-container {
         padding: var(--space-4);
+        padding-bottom: calc(var(--space-6) + 40px); /* Extra padding for mobile */
         min-height: 300px;
         flex-shrink: 0;
     }
@@ -1295,7 +1585,7 @@ body {
     }
     
     .view-content > section:last-child {
-        margin-bottom: var(--space-4);
+        margin-bottom: calc(var(--space-4) + 100px); /* Extra bottom margin for mobile scrolling */
     }
     
     /* Control Panel and Settings Panel spacing */
@@ -1387,8 +1677,27 @@ body {
     }
     
     .metrics-grid {
+        padding: var(--space-2);
+        gap: var(--space-2);
+    }
+    
+    .weather-card {
+        min-height: 200px;
         padding: var(--space-3);
-        gap: var(--space-3);
+    }
+    
+    .weather-time {
+        font-size: 2rem;
+    }
+    
+    .weather-card .weather-icon {
+        width: 36px;
+        height: 36px;
+    }
+    
+    .weather-card .weather-icon svg {
+        width: 36px;
+        height: 36px;
     }
     
     .metric-value {
@@ -1399,8 +1708,14 @@ body {
         font-size: 0.875rem;
     }
     
+    .chart-section {
+        padding-bottom: calc(var(--space-8) + 100px); /* Extra space for very small mobile screens */
+        margin-bottom: calc(var(--space-6) + 60px); /* Extra margin for full chart visibility */
+    }
+    
     .chart-container {
         padding: var(--space-3);
+        padding-bottom: calc(var(--space-6) + 60px); /* Extra padding for very small screens */
         min-height: 250px;
     }
     
