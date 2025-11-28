@@ -89,15 +89,29 @@ function updateTimestamp() {
 setInterval(updateTimestamp, 1000);
 updateTimestamp();
 
-// Initialize Chart with Professional Dark Theme
+// Initialize Chart with High-Tech Dark Theme
 function initializeChart() {
     const ctx = document.getElementById('dataChart').getContext('2d');
     
-    // Professional color palette
+    // High-tech color palette with neon effects
     const tempColor = '#ff6b35';
+    const tempColorGlow = 'rgba(255, 107, 53, 0.6)';
     const humColor = '#4dabf7';
-    const gridColor = 'rgba(139, 148, 158, 0.1)';
+    const humColorGlow = 'rgba(77, 171, 247, 0.6)';
+    const gridColor = 'rgba(139, 148, 158, 0.08)';
+    const gridColorStrong = 'rgba(139, 148, 158, 0.15)';
     const textColor = '#8b949e';
+    
+    // Create gradient fills for high-tech look
+    const tempGradient = ctx.createLinearGradient(0, 0, 0, 400);
+    tempGradient.addColorStop(0, 'rgba(255, 107, 53, 0.25)');
+    tempGradient.addColorStop(0.5, 'rgba(255, 107, 53, 0.12)');
+    tempGradient.addColorStop(1, 'rgba(255, 107, 53, 0.02)');
+    
+    const humGradient = ctx.createLinearGradient(0, 0, 0, 400);
+    humGradient.addColorStop(0, 'rgba(77, 171, 247, 0.25)');
+    humGradient.addColorStop(0.5, 'rgba(77, 171, 247, 0.12)');
+    humGradient.addColorStop(1, 'rgba(77, 171, 247, 0.02)');
     
     dataChart = new Chart(ctx, {
         type: 'line',
@@ -108,34 +122,36 @@ function initializeChart() {
                     label: 'Temperature',
                     data: temperatureData,
                     borderColor: tempColor,
-                    backgroundColor: 'rgba(255, 107, 53, 0.05)',
-                    borderWidth: 2,
-                    tension: 0.4,
+                    backgroundColor: tempGradient,
+                    borderWidth: 3,
+                    tension: 0.5,
                     fill: true,
                     pointRadius: 0,
-                    pointHoverRadius: 6,
+                    pointHoverRadius: 8,
                     pointBackgroundColor: tempColor,
                     pointBorderColor: '#0d1117',
-                    pointBorderWidth: 2,
+                    pointBorderWidth: 3,
                     pointHoverBackgroundColor: tempColor,
                     pointHoverBorderColor: '#ffffff',
+                    pointHoverBorderWidth: 3,
                     yAxisID: 'y'
                 },
                 {
                     label: 'Humidity',
                     data: humidityData,
                     borderColor: humColor,
-                    backgroundColor: 'rgba(77, 171, 247, 0.05)',
-                    borderWidth: 2,
-                    tension: 0.4,
+                    backgroundColor: humGradient,
+                    borderWidth: 3,
+                    tension: 0.5,
                     fill: true,
                     pointRadius: 0,
-                    pointHoverRadius: 6,
+                    pointHoverRadius: 8,
                     pointBackgroundColor: humColor,
                     pointBorderColor: '#0d1117',
-                    pointBorderWidth: 2,
+                    pointBorderWidth: 3,
                     pointHoverBackgroundColor: humColor,
                     pointHoverBorderColor: '#ffffff',
+                    pointHoverBorderWidth: 3,
                     yAxisID: 'y1'
                 }
             ]
@@ -143,9 +159,47 @@ function initializeChart() {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            animation: {
+                duration: 800,
+                easing: 'easeOutQuart',
+                x: {
+                    duration: 0
+                },
+                y: {
+                    duration: 800
+                }
+            },
+            transitions: {
+                show: {
+                    animations: {
+                        x: {
+                            from: 0
+                        },
+                        y: {
+                            from: 0
+                        }
+                    }
+                },
+                hide: {
+                    animations: {
+                        x: {
+                            to: 0
+                        },
+                        y: {
+                            to: 0
+                        }
+                    }
+                }
+            },
             interaction: {
                 mode: 'index',
                 intersect: false,
+            },
+            elements: {
+                point: {
+                    hoverRadius: 8,
+                    hoverBorderWidth: 3
+                }
             },
             plugins: {
                 legend: {
@@ -157,34 +211,41 @@ function initializeChart() {
                         font: {
                             family: 'Space Grotesk, sans-serif',
                             size: 12,
-                            weight: '500'
+                            weight: '600'
                         },
-                        padding: 20,
+                        padding: 24,
                         usePointStyle: true,
                         pointStyle: 'circle',
-                        boxWidth: 8,
-                        boxHeight: 8
+                        boxWidth: 10,
+                        boxHeight: 10,
+                        pointStyleWidth: 10
                     }
                 },
                 tooltip: {
-                    backgroundColor: 'rgba(22, 27, 34, 0.95)',
+                    backgroundColor: 'rgba(13, 17, 23, 0.98)',
                     titleColor: '#f0f6fc',
                     bodyColor: '#8b949e',
                     borderColor: '#30363d',
-                    borderWidth: 1,
-                    padding: 12,
-                    cornerRadius: 8,
+                    borderWidth: 1.5,
+                    padding: 14,
+                    cornerRadius: 10,
                     displayColors: true,
                     titleFont: {
                         family: 'Space Grotesk, sans-serif',
-                        size: 12,
+                        size: 13,
                         weight: '600'
                     },
                     bodyFont: {
                         family: 'JetBrains Mono, monospace',
-                        size: 13
+                        size: 13,
+                        weight: '500'
                     },
+                    boxPadding: 6,
+                    usePointStyle: true,
                     callbacks: {
+                        title: function(context) {
+                            return context[0].label || '';
+                        },
                         label: function(context) {
                             let label = context.dataset.label || '';
                             if (label) {
@@ -192,11 +253,19 @@ function initializeChart() {
                             }
                             if (context.parsed.y !== null) {
                                 const value = context.dataset.label === 'Temperature' 
-                                    ? context.parsed.y.toFixed(2) + '°C'
-                                    : context.parsed.y.toFixed(2) + '%';
+                                    ? context.parsed.y.toFixed(1) + '°C'
+                                    : context.parsed.y.toFixed(1) + '%';
                                 label += value;
                             }
                             return label;
+                        },
+                        labelColor: function(context) {
+                            return {
+                                borderColor: context.dataset.borderColor,
+                                backgroundColor: context.dataset.borderColor,
+                                borderWidth: 3,
+                                borderRadius: 2
+                            };
                         }
                     }
                 }
@@ -207,15 +276,21 @@ function initializeChart() {
                         color: textColor,
                         font: {
                             family: 'JetBrains Mono, monospace',
-                            size: 11
+                            size: 11,
+                            weight: '500'
                         },
                         maxRotation: 0,
-                        padding: 8
+                        padding: 10
                     },
                     grid: {
                         color: gridColor,
                         drawBorder: false,
-                        lineWidth: 1
+                        lineWidth: 1,
+                        drawTicks: false,
+                        z: 0
+                    },
+                    border: {
+                        display: false
                     }
                 },
                 y: {
@@ -244,7 +319,12 @@ function initializeChart() {
                     grid: {
                         color: gridColor,
                         drawBorder: false,
-                        lineWidth: 1
+                        lineWidth: 1,
+                        drawTicks: false,
+                        z: 1
+                    },
+                    border: {
+                        display: false
                     }
                 },
                 y1: {
@@ -272,7 +352,11 @@ function initializeChart() {
                     },
                     grid: {
                         drawOnChartArea: false,
-                        drawBorder: false
+                        drawBorder: false,
+                        drawTicks: false
+                    },
+                    border: {
+                        display: false
                     }
                 }
             }
@@ -553,80 +637,8 @@ function sendFanCommand(command, isAuto = false) {
             console.log(`⚠️ MQTT not connected, but fan status updated locally: ${command}`);
         }
     }
-    
-    // Update Firebase (optional - for historical data/backup)
-    updateFirebaseStatus(fanState, isAuto);
 }
 
-// Update Firebase Realtime Database with fan status
-async function updateFirebaseStatus(fanState, isAuto) {
-    console.log(`🔥 updateFirebaseStatus called: fanState=${fanState}, isAuto=${isAuto}, temp=${currentTemp}, hum=${currentHum}`);
-    
-    // Check if Firebase is initialized
-    if (typeof window.firebaseDatabase === 'undefined') {
-        console.warn('⚠️ Firebase not initialized. Make sure firebase-config.js is configured.');
-        console.log('Retrying Firebase update in 1 second...');
-        // Wait a bit and try again
-        setTimeout(() => updateFirebaseStatus(fanState, isAuto), 1000);
-        return;
-    }
-
-    // Check if database functions are available
-    if (typeof window.firebaseRef === 'undefined' || typeof window.firebaseSet === 'undefined') {
-        console.warn('⚠️ Firebase database functions not loaded yet. Retrying in 500ms...');
-        // Wait a bit and try again
-        setTimeout(() => updateFirebaseStatus(fanState, isAuto), 500);
-        return;
-    }
-
-    try {
-        const statusRef = window.firebaseRef(window.firebaseDatabase, 'fan/status');
-        
-        const statusData = {
-            status: fanState,
-            isAuto: isAuto,
-            timestamp: new Date().toISOString(),
-            temperature: currentTemp !== null ? currentTemp : null,
-            humidity: currentHum !== null ? currentHum : null
-        };
-
-        console.log('🔥 Attempting to write to Firebase:', statusData);
-        await window.firebaseSet(statusRef, statusData);
-        console.log('✅ Firebase updated successfully:', statusData);
-    } catch (error) {
-        console.error('❌ Error updating Firebase:', error);
-        console.error('Error message:', error.message);
-        if (error.code) {
-            console.error('Error code:', error.code);
-        }
-        if (error.stack) {
-            console.error('Stack trace:', error.stack);
-        }
-    }
-}
-
-// Periodic Firebase update to keep data fresh (even if state doesn't change)
-let periodicFirebaseUpdate = null;
-function startPeriodicFirebaseUpdate() {
-    if (periodicFirebaseUpdate) {
-        clearInterval(periodicFirebaseUpdate);
-    }
-    
-    // Update Firebase every 30 seconds with current state
-    periodicFirebaseUpdate = setInterval(() => {
-        if (automationActive && (currentTemp !== null || currentHum !== null)) {
-            console.log('🔄 Periodic Firebase update (every 30s)');
-            updateFirebaseStatus(fanAutoState, true);
-        }
-    }, 30000); // 30 seconds
-}
-
-function stopPeriodicFirebaseUpdate() {
-    if (periodicFirebaseUpdate) {
-        clearInterval(periodicFirebaseUpdate);
-        periodicFirebaseUpdate = null;
-    }
-}
 
 // Apply preset mode configuration
 function applyFanMode(mode) {
@@ -801,13 +813,11 @@ if (automationEnabled) {
                 activationTimer = null;
             }
             conditionMetSince = null;
-            stopPeriodicFirebaseUpdate();
             console.log('Automation disabled');
         } else {
             // Enable automation - check conditions immediately
             console.log('✅ Automation enabled, checking conditions...');
             conditionMetSince = null; // Reset condition timer
-            startPeriodicFirebaseUpdate(); // Start periodic updates
             checkAutomation();
         }
     });
@@ -828,6 +838,35 @@ if (fanMode) {
             checkAutomation();
         }
     });
+}
+
+// View switching
+function switchView(view) {
+    const dashboardView = document.getElementById('dashboardView');
+    const settingsView = document.getElementById('settingsView');
+    const navItems = document.querySelectorAll('.nav-item');
+    
+    if (view === 'dashboard') {
+        if (dashboardView) dashboardView.style.display = 'block';
+        if (settingsView) settingsView.style.display = 'none';
+        navItems.forEach(item => {
+            if (item.getAttribute('href') === '#dashboard') {
+                item.classList.add('active');
+            } else {
+                item.classList.remove('active');
+            }
+        });
+    } else if (view === 'settings') {
+        if (dashboardView) dashboardView.style.display = 'none';
+        if (settingsView) settingsView.style.display = 'block';
+        navItems.forEach(item => {
+            if (item.getAttribute('href') === '#settings') {
+                item.classList.add('active');
+            } else {
+                item.classList.remove('active');
+            }
+        });
+    }
 }
 
 // Initialize on page load
@@ -853,7 +892,6 @@ document.addEventListener('DOMContentLoaded', () => {
         automationActive = automationEnabled.checked;
         if (automationActive) {
             console.log('✅ Automation is enabled on page load');
-            startPeriodicFirebaseUpdate();
             // Check automation immediately if sensor data is available
             if (currentTemp !== null && currentHum !== null) {
                 console.log('🔍 Initial automation check with existing data');
@@ -863,6 +901,20 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log('⚠️ Automation is DISABLED - toggle it ON to enable automatic fan control');
         }
     }
+    
+    // Handle navigation
+    const navItems = document.querySelectorAll('.nav-item');
+    navItems.forEach(item => {
+        item.addEventListener('click', (e) => {
+            e.preventDefault();
+            const href = item.getAttribute('href');
+            if (href === '#dashboard') {
+                switchView('dashboard');
+            } else if (href === '#settings') {
+                switchView('settings');
+            }
+        });
+    });
     
     // Auto-connect on load (optional - comment out if you want manual connection)
     // connectToMQTT();

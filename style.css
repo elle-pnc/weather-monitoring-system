@@ -202,7 +202,7 @@ body {
 .topbar {
     background: var(--bg-elevated);
     border-bottom: 1px solid var(--border-base);
-    padding: var(--space-6) var(--space-8);
+    padding: var(--space-4) var(--space-8);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -210,20 +210,23 @@ body {
     top: 0;
     z-index: 10;
     backdrop-filter: blur(10px);
+    margin-bottom: 0;
+    flex-shrink: 0;
 }
 
 .page-title {
-    font-size: 1.5rem;
+    font-size: 1.375rem;
     font-weight: 600;
     color: var(--text-primary);
-    margin-bottom: var(--space-1);
+    margin-bottom: 0.125rem;
     letter-spacing: -0.02em;
 }
 
 .page-subtitle {
-    font-size: 0.875rem;
+    font-size: 0.8125rem;
     color: var(--text-secondary);
     font-weight: 400;
+    line-height: 1.4;
 }
 
 .timestamp {
@@ -237,6 +240,22 @@ body {
 }
 
 /* ==================== CONTENT AREA ==================== */
+.view-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 0px);
+    overflow: hidden;
+}
+
+.view-content > section {
+    padding: var(--space-8);
+    max-width: 1400px;
+    width: 100%;
+    margin: 0 auto;
+}
+
+/* Legacy support for direct section children */
 .main-content > section {
     padding: var(--space-8);
     max-width: 1400px;
@@ -245,7 +264,7 @@ body {
 }
 
 .section-header {
-    margin-bottom: var(--space-6);
+    margin-bottom: var(--space-4);
 }
 
 .section-title {
@@ -266,7 +285,13 @@ body {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: var(--space-6);
-    margin-bottom: var(--space-8);
+    margin-bottom: var(--space-6);
+    padding: var(--space-6) var(--space-8);
+    max-width: 1400px;
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    flex-shrink: 0;
 }
 
 .metric-card {
@@ -507,7 +532,21 @@ body {
 
 /* ==================== CHART SECTION ==================== */
 .chart-section {
-    margin-bottom: var(--space-8);
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 0 var(--space-8) var(--space-6) var(--space-8);
+    max-width: 1400px;
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.chart-section .section-header {
+    margin-bottom: var(--space-4);
+    flex-shrink: 0;
 }
 
 .chart-container {
@@ -515,11 +554,53 @@ body {
     border: 1px solid var(--border-base);
     border-radius: 12px;
     padding: var(--space-6);
-    min-height: 400px;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+}
+
+/* High-tech glow effect overlay */
+.chart-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+        radial-gradient(circle at 20% 50%, rgba(255, 107, 53, 0.03) 0%, transparent 50%),
+        radial-gradient(circle at 80% 50%, rgba(77, 171, 247, 0.03) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.chart-container canvas {
+    position: relative;
+    z-index: 2;
 }
 
 #dataChart {
-    max-height: 400px;
+    max-height: 100%;
+    width: 100% !important;
+    height: auto !important;
+    filter: drop-shadow(0 0 8px rgba(255, 107, 53, 0.2)) 
+            drop-shadow(0 0 8px rgba(77, 171, 247, 0.2));
+    animation: chartGlow 3s ease-in-out infinite alternate;
+}
+
+@keyframes chartGlow {
+    0% {
+        filter: drop-shadow(0 0 6px rgba(255, 107, 53, 0.15)) 
+                drop-shadow(0 0 6px rgba(77, 171, 247, 0.15));
+    }
+    100% {
+        filter: drop-shadow(0 0 12px rgba(255, 107, 53, 0.25)) 
+                drop-shadow(0 0 12px rgba(77, 171, 247, 0.25));
+    }
 }
 
 /* ==================== CONTROL PANEL ==================== */

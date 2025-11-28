@@ -2,7 +2,7 @@
 
 ## Overview
 
-The automation feature uses **professional hysteresis control** to automatically turn the fan on/off based on temperature and humidity thresholds. This industry-standard approach prevents rapid cycling and provides stable, energy-efficient operation. When the fan state changes, it automatically updates Firebase Realtime Database.
+The automation feature uses **professional hysteresis control** to automatically turn the fan on/off based on temperature and humidity thresholds. This industry-standard approach prevents rapid cycling and provides stable, energy-efficient operation. Fan status is tracked locally in the dashboard and published to MQTT.
 
 ## Features
 
@@ -10,7 +10,7 @@ The automation feature uses **professional hysteresis control** to automatically
 - **Temperature-based control**: Set ON and OFF thresholds with conditions (< or >)
 - **Humidity-based control**: Set ON and OFF thresholds with conditions (< or >)
 - **Sensor Noise Filter**: Short delay (1-2 seconds) to filter sensor noise
-- **Firebase integration**: Automatically saves fan status to Firebase Realtime Database
+- **MQTT integration**: Fan status is published to MQTT broker for monitoring
 - **Manual override**: Manual fan control disables automation temporarily
 
 ## How It Works
@@ -25,7 +25,7 @@ The automation feature uses **professional hysteresis control** to automatically
    - Fan turns ON when temperature OR humidity meets ON threshold
    - Fan turns OFF when temperature OR humidity meets OFF threshold
    - Deadband prevents rapid on/off cycling (professional HVAC approach)
-5. **Firebase Updates**: Every fan state change is saved to Firebase at `fan/status`
+5. **MQTT Updates**: Fan status is published to `weather/fan/status` topic for monitoring
 
 ## Hysteresis Explained
 
@@ -41,30 +41,7 @@ This is more professional than simple delays because:
 - ✅ Standard in professional HVAC systems
 - ✅ No arbitrary delays needed
 
-## Firebase Data Structure
-
-```json
-{
-  "fan": {
-    "status": {
-      "status": true,
-      "isAuto": true,
-      "timestamp": "2025-01-15T10:30:00.000Z",
-      "temperature": 27.5,
-      "humidity": 65.0
-    }
-  }
-}
-```
-
 ## Configuration
-
-### Firebase Setup
-
-1. Copy `firebase-config.js.example` to `firebase-config.js`
-2. Get your Firebase credentials from Firebase Console
-3. Fill in `apiKey` and `appId`
-4. Enable Realtime Database in Firebase Console
 
 ### Automation Settings
 
@@ -78,7 +55,7 @@ This is more professional than simple delays because:
 ## Behavior
 
 - **ON Threshold Met**: When temperature/humidity meets ON threshold, short delay starts (noise filter)
-- **After Delay**: Fan turns ON automatically and status is saved to Firebase
+- **After Delay**: Fan turns ON automatically and status is published to MQTT
 - **OFF Threshold Met**: Fan turns OFF immediately when OFF threshold is met (hysteresis prevents cycling)
 - **Deadband Protection**: The difference between ON and OFF thresholds prevents rapid cycling
 - **Manual Control**: User can manually control fan, which temporarily disables automation for that session
@@ -107,5 +84,5 @@ This is more professional than simple delays because:
 - **Fan not turning on**: Check that automation is enabled and ON thresholds are set correctly
 - **Fan not turning off**: Check that OFF thresholds are set correctly (should be different from ON)
 - **Rapid cycling**: Increase the deadband (difference between ON and OFF thresholds)
-- **Firebase not updating**: Verify `firebase-config.js` is configured and Realtime Database is enabled
+- **MQTT not updating**: Verify MQTT connection is established and broker is accessible
 

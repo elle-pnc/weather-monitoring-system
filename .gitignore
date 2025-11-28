@@ -1,6 +1,5 @@
 # Sensitive Configuration Files
 firmware/config.h
-firebase-config.js
 *.env
 .env.local
 
