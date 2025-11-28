@@ -102,6 +102,7 @@ body {
     justify-content: space-between;
     align-items: center;
     position: relative;
+    gap: var(--space-3); /* Add gap between brand and close button */
 }
 
 .sidebar-toggle-header {
@@ -145,12 +146,23 @@ body {
     display: flex;
     align-items: center;
     gap: var(--space-3);
+    flex: 1;
+    min-width: 0; /* Allow text to shrink/truncate if needed */
 }
 
 .brand-icon {
-    width: 28px;
-    height: 28px;
-    color: var(--accent-blue);
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
+.brand-name {
+    height: 45px; /* Larger, more prominent brand name */
+    width: auto;
+    object-fit: contain;
+    flex-shrink: 1;
+    min-width: 0; /* Allow it to shrink if needed */
 }
 
 .brand-text {
@@ -158,6 +170,14 @@ body {
     font-weight: 600;
     color: var(--text-primary);
     letter-spacing: -0.02em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.brand-highlight {
+    color: var(--accent-blue);
+    font-weight: 700;
 }
 
 .sidebar-nav {
@@ -1284,6 +1304,7 @@ body {
     height: 32px;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0; /* Prevent button from shrinking */
 }
 
 .sidebar-close:hover {
