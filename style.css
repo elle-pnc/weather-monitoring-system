@@ -379,7 +379,7 @@ body {
 /* ==================== METRICS GRID ==================== */
 .metrics-grid {
     display: grid;
-    grid-template-columns: 1.5fr 1fr 1fr;
+    grid-template-columns: 1.5fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr;
     grid-template-rows: 1fr 1fr;
     gap: var(--space-2);
     margin-bottom: var(--space-2);
@@ -402,9 +402,14 @@ body {
     overflow: hidden;
 }
 
-/* Smaller cards (temp, humidity, fan) */
+/* Smaller cards (temp, humidity, pressure, light, rain, wind speed, wind dir, fan) */
 .temp-card,
-.hum-card {
+.hum-card,
+.press-card,
+.light-card,
+.rain-card,
+.wind-speed-card,
+.wind-dir-card {
     padding: var(--space-2);
     min-height: 0;
 }
@@ -412,28 +417,49 @@ body {
 .fan-card {
     padding: var(--space-2);
     min-height: 0;
+    grid-column: 1 / 9;  /* Span all columns */
 }
 
 /* Smaller metric values in compact cards */
 .temp-card .metric-value,
 .hum-card .metric-value,
+.press-card .metric-value,
+.light-card .metric-value,
+.rain-card .metric-value,
+.wind-speed-card .metric-value,
+.wind-dir-card .metric-value,
 .fan-card .metric-value {
     font-size: 1.25rem;
 }
 
 .temp-card .metric-unit,
-.hum-card .metric-unit {
+.hum-card .metric-unit,
+.press-card .metric-unit,
+.light-card .metric-unit,
+.rain-card .metric-unit,
+.wind-speed-card .metric-unit,
+.wind-dir-card .metric-unit {
     font-size: 0.75rem;
 }
 
 .temp-card .metric-label,
 .hum-card .metric-label,
+.press-card .metric-label,
+.light-card .metric-label,
+.rain-card .metric-label,
+.wind-speed-card .metric-label,
+.wind-dir-card .metric-label,
 .fan-card .metric-label {
     font-size: 0.6875rem;
 }
 
 .temp-card .metric-icon,
 .hum-card .metric-icon,
+.press-card .metric-icon,
+.light-card .metric-icon,
+.rain-card .metric-icon,
+.wind-speed-card .metric-icon,
+.wind-dir-card .metric-icon,
 .fan-card .metric-icon {
     width: 24px;
     height: 24px;
@@ -442,6 +468,11 @@ body {
 
 .temp-card .metric-icon svg,
 .hum-card .metric-icon svg,
+.press-card .metric-icon svg,
+.light-card .metric-icon svg,
+.rain-card .metric-icon svg,
+.wind-speed-card .metric-icon svg,
+.wind-dir-card .metric-icon svg,
 .fan-card .metric-icon svg {
     width: 14px;
     height: 14px;
@@ -451,18 +482,33 @@ body {
 /* Compact headers and footers */
 .temp-card .metric-header,
 .hum-card .metric-header,
+.press-card .metric-header,
+.light-card .metric-header,
+.rain-card .metric-header,
+.wind-speed-card .metric-header,
+.wind-dir-card .metric-header,
 .fan-card .metric-header {
     margin-bottom: var(--space-1);
 }
 
 .temp-card .metric-footer,
 .hum-card .metric-footer,
+.press-card .metric-footer,
+.light-card .metric-footer,
+.rain-card .metric-footer,
+.wind-speed-card .metric-footer,
+.wind-dir-card .metric-footer,
 .fan-card .metric-footer {
     margin-top: var(--space-1);
 }
 
 .temp-card .metric-value-group,
 .hum-card .metric-value-group,
+.press-card .metric-value-group,
+.light-card .metric-value-group,
+.rain-card .metric-value-group,
+.wind-speed-card .metric-value-group,
+.wind-dir-card .metric-value-group,
 .fan-card .metric-value-group {
     padding: var(--space-1) 0;
 }
@@ -492,9 +538,34 @@ body {
     grid-column: 3;
 }
 
+.press-card {
+    grid-row: 1;
+    grid-column: 4;
+}
+
+.light-card {
+    grid-row: 1;
+    grid-column: 5;
+}
+
+.rain-card {
+    grid-row: 1;
+    grid-column: 6;
+}
+
+.wind-speed-card {
+    grid-row: 1;
+    grid-column: 7;
+}
+
+.wind-dir-card {
+    grid-row: 1;
+    grid-column: 8;
+}
+
 .fan-card {
     grid-row: 2;
-    grid-column: 2 / 4;
+    grid-column: 1 / 9;
 }
 
 .metric-card::before {
@@ -521,6 +592,26 @@ body {
 
 .hum-card::before {
     background: var(--metric-hum);
+}
+
+.press-card::before {
+    background: var(--accent-purple);
+}
+
+.light-card::before {
+    background: #ffd700;
+}
+
+.rain-card::before {
+    background: #4a90e2;
+}
+
+.wind-speed-card::before {
+    background: #7c3aed;
+}
+
+.wind-dir-card::before {
+    background: #06b6d4;
 }
 
 .metric-header {
@@ -555,6 +646,26 @@ body {
 
 .hum-icon {
     color: var(--metric-hum);
+}
+
+.press-icon {
+    color: var(--accent-purple);
+}
+
+.light-icon {
+    color: #ffd700;  /* Gold/yellow for light */
+}
+
+.rain-icon {
+    color: #4a90e2;  /* Blue for rain */
+}
+
+.wind-speed-icon {
+    color: #7c3aed;  /* Purple for wind speed */
+}
+
+.wind-dir-icon {
+    color: #06b6d4;  /* Cyan for wind direction */
 }
 
 .fan-icon {

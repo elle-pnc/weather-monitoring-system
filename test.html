@@ -218,6 +218,32 @@
             </div>
         </div>
 
+        <!-- Weather Condition Scenarios -->
+        <div class="test-card">
+            <h2>🌤️ Weather Condition Scenarios</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 1rem; font-size: 0.875rem;">
+                Test each weather condition with realistic sensor values based on meteorological standards
+            </p>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem; margin-bottom: 1rem;">
+                <button class="btn btn-success" id="scenarioRainy" style="justify-content: center;">🌧️ Rainy</button>
+                <button class="btn btn-success" id="scenarioSunny" style="justify-content: center;">☀️ Sunny</button>
+                <button class="btn btn-success" id="scenarioCloudy" style="justify-content: center;">☁️ Cloudy</button>
+                <button class="btn btn-success" id="scenarioPartlyCloudy" style="justify-content: center;">⛅ Partly Cloudy</button>
+                <button class="btn btn-success" id="scenarioFoggy" style="justify-content: center;">🌫️ Foggy</button>
+                <button class="btn btn-success" id="scenarioHot" style="justify-content: center;">🔥 Hot & Dry</button>
+                <button class="btn btn-success" id="scenarioCold" style="justify-content: center;">❄️ Cold</button>
+                <button class="btn btn-success" id="scenarioWindy" style="justify-content: center;">💨 Windy/Stormy</button>
+            </div>
+            <div style="background: var(--bg-base); padding: 1rem; border-radius: 8px; border: 1px solid var(--border-base);">
+                <div style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
+                    <strong>Current Scenario:</strong> <span id="currentScenario">None selected</span>
+                </div>
+                <div id="scenarioDetails" style="font-size: 0.75rem; color: var(--text-tertiary); font-family: var(--font-mono);">
+                    Select a scenario to see sensor values
+                </div>
+            </div>
+        </div>
+
         <!-- Manual Data Publishing -->
         <div class="test-card">
             <h2>Manual Data Publishing</h2>
@@ -231,9 +257,32 @@
                     <input type="number" id="humValue" class="form-input" value="65.0" step="0.1" min="0" max="100">
                 </div>
             </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Pressure (hPa)</label>
+                    <input type="number" id="pressValue" class="form-input" value="1013.25" step="0.1">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Light (%)</label>
+                    <input type="number" id="lightValue" class="form-input" value="50.0" step="0.1" min="0" max="100">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Rain (%)</label>
+                    <input type="number" id="rainValue" class="form-input" value="0.0" step="0.1" min="0" max="100">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Wind Speed (m/s)</label>
+                    <input type="number" id="windSpeedValue" class="form-input" value="2.0" step="0.1" min="0">
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Wind Direction (°)</label>
+                <input type="number" id="windDirValue" class="form-input" value="180" step="1" min="0" max="360">
+            </div>
             <div class="btn-group">
-                <button class="btn btn-success" id="sendTempBtn">Send Temperature</button>
-                <button class="btn btn-success" id="sendHumBtn">Send Humidity</button>
+                <button class="btn btn-success" id="sendAllBtn">Send All Sensors</button>
                 <button class="btn btn-success" id="sendStatusBtn">Send Status (JSON)</button>
             </div>
         </div>
@@ -245,29 +294,29 @@
                 Automatically sends sensor data at specified intervals using preset scenarios or custom ranges
             </p>
             
-            <!-- Scenario Presets -->
+            <!-- Scenario Presets (for auto-send) -->
             <div class="form-group" style="margin-bottom: 1.5rem;">
-                <label class="form-label">Scenario Preset</label>
+                <label class="form-label">Auto-Send Scenario Preset</label>
                 <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
                     <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
                         <input type="radio" name="scenario" value="normal" checked style="cursor: pointer;">
-                        <span>🌡️ Normal (20-25°C, 50-65%)</span>
+                        <span>🌡️ Normal (Partly Cloudy)</span>
                     </label>
                     <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
                         <input type="radio" name="scenario" value="hot" style="cursor: pointer;">
-                        <span>🔥 Hot & Dry (32-38°C, 30-40%)</span>
+                        <span>🔥 Hot & Dry</span>
                     </label>
                     <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
                         <input type="radio" name="scenario" value="cold" style="cursor: pointer;">
-                        <span>❄️ Cold (10-14°C, 40-60%)</span>
+                        <span>❄️ Cold</span>
                     </label>
                     <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
                         <input type="radio" name="scenario" value="rainy" style="cursor: pointer;">
-                        <span>🌧️ Rainy (20-28°C, 72-85%)</span>
+                        <span>🌧️ Rainy</span>
                     </label>
                     <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
                         <input type="radio" name="scenario" value="sunny" style="cursor: pointer;">
-                        <span>☀️ Sunny (22-28°C, 30-48%)</span>
+                        <span>☀️ Sunny</span>
                     </label>
                     <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
                         <input type="radio" name="scenario" value="custom" style="cursor: pointer;">
@@ -331,9 +380,15 @@
         const connectionStatus = document.getElementById('connectionStatus');
         const tempValue = document.getElementById('tempValue');
         const humValue = document.getElementById('humValue');
-        const sendTempBtn = document.getElementById('sendTempBtn');
-        const sendHumBtn = document.getElementById('sendHumBtn');
+        const pressValue = document.getElementById('pressValue');
+        const lightValue = document.getElementById('lightValue');
+        const rainValue = document.getElementById('rainValue');
+        const windSpeedValue = document.getElementById('windSpeedValue');
+        const windDirValue = document.getElementById('windDirValue');
+        const sendAllBtn = document.getElementById('sendAllBtn');
         const sendStatusBtn = document.getElementById('sendStatusBtn');
+        const currentScenario = document.getElementById('currentScenario');
+        const scenarioDetails = document.getElementById('scenarioDetails');
         const autoInterval = document.getElementById('autoInterval');
         const tempMin = document.getElementById('tempMin');
         const tempMax = document.getElementById('tempMax');
@@ -462,30 +517,57 @@
             return true;
         }
 
-        // Send temperature
-        function sendTemperature() {
+        // Send all sensor data
+        function sendAllSensors() {
             const temp = parseFloat(tempValue.value);
-            if (isNaN(temp)) {
-                addLog('❌ Invalid temperature value', 'error');
-                return;
-            }
-            publishMessage('weather/temperature', temp.toString());
-        }
-
-        // Send humidity
-        function sendHumidity() {
             const hum = parseFloat(humValue.value);
-            if (isNaN(hum) || hum < 0 || hum > 100) {
-                addLog('❌ Invalid humidity value (must be 0-100)', 'error');
+            const press = parseFloat(pressValue.value);
+            const light = parseFloat(lightValue.value);
+            const rain = parseFloat(rainValue.value);
+            const windSpeed = parseFloat(windSpeedValue.value);
+            const windDir = parseFloat(windDirValue.value);
+
+            // Validate
+            if (isNaN(temp) || isNaN(hum)) {
+                addLog('❌ Invalid temperature or humidity value', 'error');
                 return;
             }
-            publishMessage('weather/humidity', hum.toString());
+
+            // Send individual topics
+            publishMessage('weather/temperature', temp.toString());
+            setTimeout(() => publishMessage('weather/humidity', hum.toString()), 50);
+            if (!isNaN(press)) setTimeout(() => publishMessage('weather/pressure', press.toString()), 100);
+            if (!isNaN(light)) setTimeout(() => publishMessage('weather/light', light.toString()), 150);
+            if (!isNaN(rain)) setTimeout(() => publishMessage('weather/rain', rain.toString()), 200);
+            if (!isNaN(windSpeed)) setTimeout(() => publishMessage('weather/wind_speed', windSpeed.toString()), 250);
+            if (!isNaN(windDir)) setTimeout(() => publishMessage('weather/wind_direction', windDir.toString()), 300);
+
+            // Send combined status JSON
+            setTimeout(() => {
+                const status = {
+                    temperature: temp,
+                    humidity: hum,
+                    pressure: !isNaN(press) ? press : null,
+                    light: !isNaN(light) ? light : null,
+                    rain: !isNaN(rain) ? rain : null,
+                    windSpeed: !isNaN(windSpeed) ? windSpeed : null,
+                    windDirection: !isNaN(windDir) ? windDir : null,
+                    fan: false,
+                    timestamp: new Date().toISOString()
+                };
+                publishMessage('weather/status', JSON.stringify(status));
+            }, 350);
         }
 
         // Send status (JSON)
         function sendStatus() {
             const temp = parseFloat(tempValue.value);
             const hum = parseFloat(humValue.value);
+            const press = parseFloat(pressValue.value);
+            const light = parseFloat(lightValue.value);
+            const rain = parseFloat(rainValue.value);
+            const windSpeed = parseFloat(windSpeedValue.value);
+            const windDir = parseFloat(windDirValue.value);
             
             if (isNaN(temp) || isNaN(hum)) {
                 addLog('❌ Invalid temperature or humidity value', 'error');
@@ -495,6 +577,11 @@
             const status = {
                 temperature: temp,
                 humidity: hum,
+                pressure: !isNaN(press) ? press : null,
+                light: !isNaN(light) ? light : null,
+                rain: !isNaN(rain) ? rain : null,
+                windSpeed: !isNaN(windSpeed) ? windSpeed : null,
+                windDirection: !isNaN(windDir) ? windDir : null,
                 fan: false,
                 timestamp: new Date().toISOString()
             };
@@ -502,7 +589,99 @@
             publishMessage('weather/status', JSON.stringify(status));
         }
 
-        // Scenario presets - aligned with weather computation logic
+        // Weather condition scenarios - based on real-world meteorological standards
+        const weatherScenarios = {
+            'rainy': {
+                name: '🌧️ Rainy',
+                description: 'High humidity + low pressure + rain detection',
+                temp: 22,
+                hum: 78,
+                press: 995,  // Low pressure (stormy)
+                light: 25,   // Low light (overcast)
+                rain: 65,    // High rain detection
+                windSpeed: 8,
+                windDir: 180
+            },
+            'sunny': {
+                name: '☀️ Sunny',
+                description: 'Low humidity + high pressure + high light',
+                temp: 26,
+                hum: 35,
+                press: 1025, // High pressure (clear)
+                light: 85,   // High light (clear)
+                rain: 0,
+                windSpeed: 3,
+                windDir: 90
+            },
+            'cloudy': {
+                name: '☁️ Cloudy',
+                description: 'Moderate-high humidity + moderate pressure + low light',
+                temp: 20,
+                hum: 65,
+                press: 1010, // Normal pressure
+                light: 30,   // Low light (cloudy)
+                rain: 0,
+                windSpeed: 5,
+                windDir: 225
+            },
+            'partly-cloudy': {
+                name: '⛅ Partly Cloudy',
+                description: 'Moderate humidity + normal conditions',
+                temp: 23,
+                hum: 55,
+                press: 1013, // Sea level standard
+                light: 60,   // Moderate light
+                rain: 0,
+                windSpeed: 4,
+                windDir: 135
+            },
+            'foggy': {
+                name: '🌫️ Foggy',
+                description: 'Very high humidity (>90%) + low light',
+                temp: 18,
+                hum: 92,     // WMO standard: >90% for fog
+                press: 1015,
+                light: 15,   // Very low light (fog)
+                rain: 0,
+                windSpeed: 1,
+                windDir: 0
+            },
+            'hot': {
+                name: '🔥 Hot & Dry',
+                description: 'High temp (>30°C) + low humidity (<40%)',
+                temp: 35,
+                hum: 35,
+                press: 1018,
+                light: 90,   // High light (clear)
+                rain: 0,
+                windSpeed: 2,
+                windDir: 270
+            },
+            'cold': {
+                name: '❄️ Cold',
+                description: 'Low temperature (<15°C)',
+                temp: 12,
+                hum: 50,
+                press: 1012,
+                light: 40,
+                rain: 0,
+                windSpeed: 3,
+                windDir: 45
+            },
+            'windy': {
+                name: '💨 Windy/Stormy',
+                description: 'High wind speed (>15 m/s) + low pressure',
+                temp: 19,
+                hum: 70,
+                press: 985,  // Very low pressure (severe storm)
+                light: 20,   // Low light
+                rain: 45,
+                windSpeed: 18, // Near Gale (Beaufort Scale)
+                windDir: 315
+            }
+        };
+
+        // Scenario presets for auto-send (ranges)
         const scenarioPresets = {
             'normal': {
                 tempMin: 20,
@@ -512,7 +691,6 @@
                 description: 'Normal conditions (Partly Cloudy)'
             },
             'hot': {
-                // Hot & Dry: High temp (>30°C) AND low humidity (<40%)
                 tempMin: 32,
                 tempMax: 38,
                 humMin: 30,
@@ -520,7 +698,6 @@
                 description: 'Hot & Dry conditions (Hot weather)'
             },
             'cold': {
-                // Cold: Low temperature (<15°C)
                 tempMin: 10,
                 tempMax: 14,
                 humMin: 40,
@@ -528,7 +705,6 @@
                 description: 'Cold conditions'
             },
             'rainy': {
-                // Rainy: High humidity (>70%) AND moderate temp (15-30°C)
                 tempMin: 20,
                 tempMax: 28,
                 humMin: 72,
@@ -536,7 +712,6 @@
                 description: 'Rainy conditions (High humidity)'
             },
             'sunny': {
-                // Sunny: Low humidity (<50%) AND temp >15°C
                 tempMin: 22,
                 tempMax: 28,
                 humMin: 30,
@@ -545,10 +720,49 @@
             }
         };
 
-        // Apply scenario preset
+        // Apply weather scenario (one-time send)
+        function applyWeatherScenario(scenarioKey) {
+            const scenario = weatherScenarios[scenarioKey];
+            if (!scenario) return;
+
+            // Update all input fields
+            tempValue.value = scenario.temp;
+            humValue.value = scenario.hum;
+            pressValue.value = scenario.press;
+            lightValue.value = scenario.light;
+            rainValue.value = scenario.rain;
+            windSpeedValue.value = scenario.windSpeed;
+            windDirValue.value = scenario.windDir;
+
+            // Update scenario display
+            currentScenario.textContent = scenario.name;
+            scenarioDetails.innerHTML = `
+                <div style="margin-bottom: 0.25rem;"><strong>Description:</strong> ${scenario.description}</div>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem; margin-top: 0.5rem;">
+                    <div>🌡️ Temp: ${scenario.temp}°C</div>
+                    <div>💧 Hum: ${scenario.hum}%</div>
+                    <div>📊 Press: ${scenario.press} hPa</div>
+                    <div>☀️ Light: ${scenario.light}%</div>
+                    <div>🌧️ Rain: ${scenario.rain}%</div>
+                    <div>💨 Wind: ${scenario.windSpeed} m/s</div>
+                    <div>🧭 Dir: ${scenario.windDir}°</div>
+                </div>
+            `;
+
+            addLog(`✅ Applied ${scenario.name} scenario`, 'success');
+            addLog(`📊 Values: Temp=${scenario.temp}°C, Hum=${scenario.hum}%, Press=${scenario.press}hPa, Light=${scenario.light}%, Rain=${scenario.rain}%, Wind=${scenario.windSpeed}m/s @ ${scenario.windDir}°`, 'info');
+
+            // Auto-send the scenario data
+            if (isConnected) {
+                sendAllSensors();
+            } else {
+                addLog('⚠️ Connect to MQTT broker first to send data', 'error');
+            }
+        }
+
+        // Apply scenario preset (for auto-send ranges)
         function applyScenario(scenario) {
             if (scenario === 'custom') {
-                // Don't change values for custom, just log
                 addLog('Using custom range', 'info');
                 return;
             }
@@ -577,22 +791,30 @@
             tempValue.value = temp;
             humValue.value = hum;
 
-            // Send both temperature and humidity
+            // Send all sensor data
             publishMessage('weather/temperature', temp.toString());
-            setTimeout(() => {
-                publishMessage('weather/humidity', hum.toString());
-            }, 100);
+            setTimeout(() => publishMessage('weather/humidity', hum.toString()), 50);
+            if (pressValue.value) setTimeout(() => publishMessage('weather/pressure', pressValue.value), 100);
+            if (lightValue.value) setTimeout(() => publishMessage('weather/light', lightValue.value), 150);
+            if (rainValue.value) setTimeout(() => publishMessage('weather/rain', rainValue.value), 200);
+            if (windSpeedValue.value) setTimeout(() => publishMessage('weather/wind_speed', windSpeedValue.value), 250);
+            if (windDirValue.value) setTimeout(() => publishMessage('weather/wind_direction', windDirValue.value), 300);
 
             // Also send status JSON
             setTimeout(() => {
                 const status = {
                     temperature: temp,
                     humidity: hum,
+                    pressure: parseFloat(pressValue.value) || null,
+                    light: parseFloat(lightValue.value) || null,
+                    rain: parseFloat(rainValue.value) || null,
+                    windSpeed: parseFloat(windSpeedValue.value) || null,
+                    windDirection: parseFloat(windDirValue.value) || null,
                     fan: false,
                     timestamp: new Date().toISOString()
                 };
                 publishMessage('weather/status', JSON.stringify(status));
-            }, 200);
+            }, 350);
         }
 
         // Start auto-send
@@ -635,8 +857,7 @@
         // Event Listeners
         connectBtn.addEventListener('click', connectToMQTT);
         disconnectBtn.addEventListener('click', disconnectFromMQTT);
-        sendTempBtn.addEventListener('click', sendTemperature);
-        sendHumBtn.addEventListener('click', sendHumidity);
+        sendAllBtn.addEventListener('click', sendAllSensors);
         sendStatusBtn.addEventListener('click', sendStatus);
         startAutoBtn.addEventListener('click', startAutoSend);
         stopAutoBtn.addEventListener('click', stopAutoSend);
@@ -645,7 +866,17 @@
             addLog('Log cleared', 'info');
         });
 
-        // Scenario preset listeners
+        // Weather scenario button listeners
+        document.getElementById('scenarioRainy').addEventListener('click', () => applyWeatherScenario('rainy'));
+        document.getElementById('scenarioSunny').addEventListener('click', () => applyWeatherScenario('sunny'));
+        document.getElementById('scenarioCloudy').addEventListener('click', () => applyWeatherScenario('cloudy'));
+        document.getElementById('scenarioPartlyCloudy').addEventListener('click', () => applyWeatherScenario('partly-cloudy'));
+        document.getElementById('scenarioFoggy').addEventListener('click', () => applyWeatherScenario('foggy'));
+        document.getElementById('scenarioHot').addEventListener('click', () => applyWeatherScenario('hot'));
+        document.getElementById('scenarioCold').addEventListener('click', () => applyWeatherScenario('cold'));
+        document.getElementById('scenarioWindy').addEventListener('click', () => applyWeatherScenario('windy'));
+
+        // Scenario preset listeners (for auto-send)
         document.querySelectorAll('input[name="scenario"]').forEach(radio => {
             radio.addEventListener('change', (e) => {
                 applyScenario(e.target.value);
@@ -657,9 +888,18 @@
             if (!clientIdInput.value) {
                 clientIdInput.value = 'test-publisher-' + Math.random().toString(16).substr(2, 8);
             }
-            // Apply default scenario (normal)
+            // Apply default scenario (normal) for auto-send
             applyScenario('normal');
+            // Set default values for manual testing
+            tempValue.value = 23.5;
+            humValue.value = 65.0;
+            pressValue.value = 1013.25;
+            lightValue.value = 50.0;
+            rainValue.value = 0.0;
+            windSpeedValue.value = 2.0;
+            windDirValue.value = 180;
             addLog('Test publisher initialized', 'info');
+            addLog('💡 Tip: Click weather scenario buttons to test each condition', 'info');
             updateConnectionStatus(false);
         });
     </script>

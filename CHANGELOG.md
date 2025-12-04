@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Planned for v2.2 (Current Development - ver-2 branch)
+- [ ] **BMP280 Integration**: Atmospheric pressure and temperature sensor
+- [ ] **DHT11 Integration**: Additional humidity sensor (optional/backup)
+- [ ] **DIY Anemometer**: Wind speed measurement
+- [ ] **DIY Wind Vane**: Wind direction measurement (0-360°)
+- [ ] **Rain Sensor**: Water/rain detection sensor
+- [ ] **LDR Sensor**: Light intensity measurement
+- [ ] **Enhanced MQTT Topics**: New topics for all sensor data
+- [ ] **Expanded Dashboard UI**: New metric cards for all sensors
+- [ ] **Advanced Charts**: Multiple chart views for different sensor groups
+- [ ] **Improved Weather Logic**: Weather condition computation using all sensors
+- [ ] **Advanced Automation**: Fan control considering wind, rain, pressure, light
+
 ### Planned for v4.0
 - [ ] Feature ideas here
 - [ ] Another feature idea

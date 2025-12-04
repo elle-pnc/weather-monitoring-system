@@ -7,6 +7,11 @@ let dataChart = null;
 const maxDataPoints = 20;
 let temperatureData = [];
 let humidityData = [];
+let pressureData = [];
+let lightData = [];
+let rainData = [];
+let windSpeedData = [];
+let windDirectionData = [];
 let timeLabels = [];
 
 // DOM Elements
@@ -15,6 +20,11 @@ const statusDot = document.getElementById('statusDot');
 const statusIndicator = document.getElementById('statusIndicator');
 const temperatureDisplay = document.getElementById('temperature');
 const humidityDisplay = document.getElementById('humidity');
+const pressureDisplay = document.getElementById('pressure');
+const lightDisplay = document.getElementById('light');
+const rainDisplay = document.getElementById('rain');
+const windSpeedDisplay = document.getElementById('windSpeed');
+const windDirectionDisplay = document.getElementById('windDirection');
 const fanStatusCard = document.getElementById('fanStatusCard');
 const fanStatusDot = document.getElementById('fanStatusDot');
 const fanStatusText = document.getElementById('fanStatusText');
@@ -66,6 +76,11 @@ const fanModePresets = {
 let automationActive = false;
 let currentTemp = null;
 let currentHum = null;
+let currentPressure = null;
+let currentLight = null;
+let currentRain = null;
+let currentWindSpeed = null;
+let currentWindDirection = null;
 let fanAutoState = false;
 let activationTimer = null;
 let conditionMetSince = null;
@@ -116,6 +131,46 @@ function initializeChart() {
     humGradient.addColorStop(0.5, 'rgba(77, 171, 247, 0.12)');
     humGradient.addColorStop(1, 'rgba(77, 171, 247, 0.02)');
     
+    // Pressure color
+    const pressColor = '#bc8cff';
+    const pressColorGlow = 'rgba(188, 140, 255, 0.6)';
+    const pressGradient = ctx.createLinearGradient(0, 0, 0, 400);
+    pressGradient.addColorStop(0, 'rgba(188, 140, 255, 0.25)');
+    pressGradient.addColorStop(0.5, 'rgba(188, 140, 255, 0.12)');
+    pressGradient.addColorStop(1, 'rgba(188, 140, 255, 0.02)');
+    
+    // Light color
+    const lightColor = '#ffd700';
+    const lightColorGlow = 'rgba(255, 215, 0, 0.6)';
+    const lightGradient = ctx.createLinearGradient(0, 0, 0, 400);
+    lightGradient.addColorStop(0, 'rgba(255, 215, 0, 0.25)');
+    lightGradient.addColorStop(0.5, 'rgba(255, 215, 0, 0.12)');
+    lightGradient.addColorStop(1, 'rgba(255, 215, 0, 0.02)');
+    
+    // Rain color
+    const rainColor = '#4a90e2';
+    const rainColorGlow = 'rgba(74, 144, 226, 0.6)';
+    const rainGradient = ctx.createLinearGradient(0, 0, 0, 400);
+    rainGradient.addColorStop(0, 'rgba(74, 144, 226, 0.25)');
+    rainGradient.addColorStop(0.5, 'rgba(74, 144, 226, 0.12)');
+    rainGradient.addColorStop(1, 'rgba(74, 144, 226, 0.02)');
+    
+    // Wind speed color
+    const windSpeedColor = '#7c3aed';
+    const windSpeedColorGlow = 'rgba(124, 58, 237, 0.6)';
+    const windSpeedGradient = ctx.createLinearGradient(0, 0, 0, 400);
+    windSpeedGradient.addColorStop(0, 'rgba(124, 58, 237, 0.25)');
+    windSpeedGradient.addColorStop(0.5, 'rgba(124, 58, 237, 0.12)');
+    windSpeedGradient.addColorStop(1, 'rgba(124, 58, 237, 0.02)');
+    
+    // Wind direction color
+    const windDirColor = '#06b6d4';
+    const windDirColorGlow = 'rgba(6, 182, 212, 0.6)';
+    const windDirGradient = ctx.createLinearGradient(0, 0, 0, 400);
+    windDirGradient.addColorStop(0, 'rgba(6, 182, 212, 0.25)');
+    windDirGradient.addColorStop(0.5, 'rgba(6, 182, 212, 0.12)');
+    windDirGradient.addColorStop(1, 'rgba(6, 182, 212, 0.02)');
+    
     dataChart = new Chart(ctx, {
         type: 'line',
         data: {
@@ -156,6 +211,96 @@ function initializeChart() {
                     pointHoverBorderColor: '#ffffff',
                     pointHoverBorderWidth: 3,
                     yAxisID: 'y1'
+                },
+                {
+                    label: 'Pressure',
+                    data: pressureData,
+                    borderColor: pressColor,
+                    backgroundColor: pressGradient,
+                    borderWidth: 3,
+                    tension: 0.5,
+                    fill: true,
+                    pointRadius: 0,
+                    pointHoverRadius: 8,
+                    pointBackgroundColor: pressColor,
+                    pointBorderColor: '#0d1117',
+                    pointBorderWidth: 3,
+                    pointHoverBackgroundColor: pressColor,
+                    pointHoverBorderColor: '#ffffff',
+                    pointHoverBorderWidth: 3,
+                    yAxisID: 'y2'
+                },
+                {
+                    label: 'Light',
+                    data: lightData,
+                    borderColor: lightColor,
+                    backgroundColor: lightGradient,
+                    borderWidth: 3,
+                    tension: 0.5,
+                    fill: true,
+                    pointRadius: 0,
+                    pointHoverRadius: 8,
+                    pointBackgroundColor: lightColor,
+                    pointBorderColor: '#0d1117',
+                    pointBorderWidth: 3,
+                    pointHoverBackgroundColor: lightColor,
+                    pointHoverBorderColor: '#ffffff',
+                    pointHoverBorderWidth: 3,
+                    yAxisID: 'y1'  // Share axis with humidity (both 0-100%)
+                },
+                {
+                    label: 'Rain',
+                    data: rainData,
+                    borderColor: rainColor,
+                    backgroundColor: rainGradient,
+                    borderWidth: 3,
+                    tension: 0.5,
+                    fill: true,
+                    pointRadius: 0,
+                    pointHoverRadius: 8,
+                    pointBackgroundColor: rainColor,
+                    pointBorderColor: '#0d1117',
+                    pointBorderWidth: 3,
+                    pointHoverBackgroundColor: rainColor,
+                    pointHoverBorderColor: '#ffffff',
+                    pointHoverBorderWidth: 3,
+                    yAxisID: 'y1'  // Share axis with humidity and light (all 0-100%)
+                },
+                {
+                    label: 'Wind Speed',
+                    data: windSpeedData,
+                    borderColor: windSpeedColor,
+                    backgroundColor: windSpeedGradient,
+                    borderWidth: 3,
+                    tension: 0.5,
+                    fill: true,
+                    pointRadius: 0,
+                    pointHoverRadius: 8,
+                    pointBackgroundColor: windSpeedColor,
+                    pointBorderColor: '#0d1117',
+                    pointBorderWidth: 3,
+                    pointHoverBackgroundColor: windSpeedColor,
+                    pointHoverBorderColor: '#ffffff',
+                    pointHoverBorderWidth: 3,
+                    yAxisID: 'y3'  // Separate axis for wind speed (m/s)
+                },
+                {
+                    label: 'Wind Direction',
+                    data: windDirectionData,
+                    borderColor: windDirColor,
+                    backgroundColor: windDirGradient,
+                    borderWidth: 3,
+                    tension: 0.5,
+                    fill: true,
+                    pointRadius: 0,
+                    pointHoverRadius: 8,
+                    pointBackgroundColor: windDirColor,
+                    pointBorderColor: '#0d1117',
+                    pointBorderWidth: 3,
+                    pointHoverBackgroundColor: windDirColor,
+                    pointHoverBorderColor: '#ffffff',
+                    pointHoverBorderWidth: 3,
+                    yAxisID: 'y4'  // Separate axis for wind direction (0-360°)
                 }
             ]
         },
@@ -255,9 +400,20 @@ function initializeChart() {
                                 label += ': ';
                             }
                             if (context.parsed.y !== null) {
-                                const value = context.dataset.label === 'Temperature' 
-                                    ? context.parsed.y.toFixed(1) + '°C'
-                                    : context.parsed.y.toFixed(1) + '%';
+                                let value;
+                                if (context.dataset.label === 'Temperature') {
+                                    value = context.parsed.y.toFixed(1) + '°C';
+                                } else if (context.dataset.label === 'Humidity' || context.dataset.label === 'Light' || context.dataset.label === 'Rain') {
+                                    value = context.parsed.y.toFixed(1) + '%';
+                                } else if (context.dataset.label === 'Pressure') {
+                                    value = context.parsed.y.toFixed(1) + ' hPa';
+                                } else if (context.dataset.label === 'Wind Speed') {
+                                    value = context.parsed.y.toFixed(1) + ' m/s';
+                                } else if (context.dataset.label === 'Wind Direction') {
+                                    value = context.parsed.y.toFixed(0) + '°';
+                                } else {
+                                    value = context.parsed.y.toFixed(1);
+                                }
                                 label += value;
                             }
                             return label;
@@ -512,6 +668,31 @@ function handleMQTTMessage(topic, message) {
         if (!isNaN(hum)) {
             updateHumidity(hum);
         }
+    } else if (topic === 'weather/pressure') {
+        const press = parseFloat(message);
+        if (!isNaN(press)) {
+            updatePressure(press);
+        }
+    } else if (topic === 'weather/light') {
+        const light = parseFloat(message);
+        if (!isNaN(light)) {
+            updateLight(light);
+        }
+    } else if (topic === 'weather/rain') {
+        const rain = parseFloat(message);
+        if (!isNaN(rain)) {
+            updateRain(rain);
+        }
+    } else if (topic === 'weather/wind_speed') {
+        const windSpeed = parseFloat(message);
+        if (!isNaN(windSpeed)) {
+            updateWindSpeed(windSpeed);
+        }
+    } else if (topic === 'weather/wind_direction') {
+        const windDir = parseFloat(message);
+        if (!isNaN(windDir)) {
+            updateWindDirection(windDir);
+        }
     } else if (topic === 'weather/status') {
         try {
             const status = JSON.parse(message);
@@ -519,6 +700,11 @@ function handleMQTTMessage(topic, message) {
             // Dashboard determines fan status based on sensor data + automation rules
             if (status.temperature !== undefined) updateTemperature(status.temperature);
             if (status.humidity !== undefined) updateHumidity(status.humidity);
+            if (status.pressure !== undefined) updatePressure(status.pressure);
+            if (status.light !== undefined) updateLight(status.light);
+            if (status.rain !== undefined) updateRain(status.rain);
+            if (status.windSpeed !== undefined) updateWindSpeed(status.windSpeed);
+            if (status.windDirection !== undefined) updateWindDirection(status.windDirection);
             // Ignore status.fan - dashboard is the source of truth for fan status
         } catch (e) {
             console.error('Error parsing status JSON:', e);
@@ -548,20 +734,112 @@ function updateHumidity(value) {
     updateWeather();
 }
 
-// Compute weather condition based on temperature and humidity
-// Meteorological principles:
-// - HIGH humidity (>70%) = Rainy/Cloudy (moisture in air = precipitation potential)
+// Update pressure display
+function updatePressure(value) {
+    if (pressureDisplay) {
+        pressureDisplay.textContent = value.toFixed(1);
+        addDataPoint('pressure', value);
+    }
+    currentPressure = value;
+    updateWeather();
+}
+
+// Update light display
+function updateLight(value) {
+    if (lightDisplay) {
+        lightDisplay.textContent = value.toFixed(1);
+        addDataPoint('light', value);
+    }
+    currentLight = value;
+    updateWeather();
+}
+
+// Update rain display
+function updateRain(value) {
+    if (rainDisplay) {
+        rainDisplay.textContent = value.toFixed(1);
+        addDataPoint('rain', value);
+    }
+    currentRain = value;
+    updateWeather();
+}
+
+// Update wind speed display
+function updateWindSpeed(value) {
+    if (windSpeedDisplay) {
+        windSpeedDisplay.textContent = value.toFixed(1);
+        addDataPoint('windSpeed', value);
+    }
+    currentWindSpeed = value;
+    updateWeather();
+}
+
+// Update wind direction display
+function updateWindDirection(value) {
+    if (windDirectionDisplay) {
+        // Normalize to 0-360 range
+        let normalized = value % 360;
+        if (normalized < 0) normalized += 360;
+        windDirectionDisplay.textContent = normalized.toFixed(0);
+        addDataPoint('windDirection', normalized);
+    }
+    currentWindDirection = value;
+    updateWeather();
+}
+
+// Compute weather condition based on temperature, humidity, pressure, light, rain, and wind
+// Based on real-world meteorological standards (WMO, NOAA, Davis Vantage Pro2):
+// - HIGH humidity (>90%) = Foggy (WMO standard: >90% for fog/dew)
+// - HIGH humidity (70-90%) = Rainy/Cloudy (moisture in air = precipitation potential)
 // - LOW humidity (<50%) = Sunny/Clear (dry air = clear skies)
 // - MEDIUM humidity (50-70%) = Partly Cloudy (transitional)
-function computeWeatherCondition(temp, hum) {
+// - VERY LOW pressure (<980 hPa) = Severe storm (WMO: <980 hPa = very unstable)
+// - LOW pressure (980-1000 hPa) = Stormy/Unstable weather
+// - NORMAL pressure (1000-1020 hPa) = Variable conditions
+// - HIGH pressure (>1020 hPa) = Stable/Clear weather (WMO: >1020 hPa = fair weather)
+// - LOW light (<20%) = Overcast/Cloudy conditions
+// - HIGH light (>80%) = Clear/Sunny conditions
+// - HIGH rain (>50%) = Rainy conditions (direct detection)
+// - HIGH wind speed (>15 m/s = Near Gale, Beaufort Scale) = Windy/Stormy conditions
+function computeWeatherCondition(temp, hum, press = null, light = null, rain = null, windSpeed = null) {
     if (temp === null || hum === null) {
         return 'unknown';
     }
     
-    // Priority order: most specific conditions first
+    // Priority order: most specific conditions first (based on meteorological standards)
     
-    // 1. Foggy: Very high humidity (>85%) - most specific condition
-    if (hum > 85) {
+    // 0. Rainy: High rain sensor reading (>50%) - direct rain detection
+    // Real-world: Rain sensor directly detects water presence
+    if (rain !== null && rain > 50) {
+        return 'rainy';  // Rain sensor detects water = rainy
+    }
+    
+    // 0.5. Severe Storm: Very low pressure (<980 hPa) - WMO standard for severe storms
+    if (press !== null && press < 980) {
+        return 'rainy';  // Very low pressure = severe stormy conditions
+    }
+    
+    // 0.6. Stormy: Low pressure (980-1000 hPa) - indicates unstable weather
+    // WMO: 980-1000 hPa = low pressure system (unstable/stormy)
+    if (press !== null && press >= 980 && press < 1000) {
+        return 'rainy';  // Low pressure = stormy/rainy conditions
+    }
+    
+    // 0.7. Windy/Stormy: High wind speed (>15 m/s = Near Gale, Beaufort Scale)
+    // Beaufort Scale: 15 m/s = Near Gale (13.9-17.2 m/s range)
+    if (windSpeed !== null && windSpeed > 15) {
+        return 'cloudy';  // High wind often associated with stormy/cloudy weather
+    }
+    
+    // 0.8. Overcast: Low light (<20%) - indicates cloudy/overcast
+    // Real-world: Low light levels indicate cloud cover
+    if (light !== null && light < 20) {
+        return 'cloudy';  // Low light = overcast conditions
+    }
+    
+    // 1. Foggy: Very high humidity (>90%) - WMO standard for fog/dew formation
+    // Updated from 85% to 90% based on meteorological standards
+    if (hum > 90) {
         return 'foggy';
     }
     
@@ -571,25 +849,33 @@ function computeWeatherCondition(temp, hum) {
     }
     
     // 3. Hot & Dry: High temp (>30°C) AND low humidity (<40%) - desert-like conditions
+    // Real-world: High temp + low humidity = hot and dry (desert conditions)
     if (temp > 30 && hum < 40) {
         return 'hot';
     }
     
-    // 4. Hot & Humid: High temp (>30°C) AND high humidity (>70%) - tropical/steamy
-    // This is hot weather with high moisture, but not necessarily raining
-    if (temp > 30 && hum > 70) {
+    // 3.5. Very Hot: Very high temp (>35°C) - extreme heat conditions
+    // WMO: >35°C = extreme heat (heat stroke risk)
+    if (temp > 35) {
+        return 'hot';  // Very hot conditions
+    }
+    
+    // 4. Hot & Humid: High temp (>30°C) AND high humidity (70-90%) - tropical/steamy
+    // Real-world: High temp + high humidity = tropical/steamy conditions
+    if (temp > 30 && hum >= 70 && hum <= 90) {
         return 'cloudy'; // Hot and humid = overcast/cloudy, not rainy
     }
     
-    // 5. Rainy: HIGH humidity (>70%) AND moderate temp (15-30°C)
+    // 5. Rainy: HIGH humidity (70-90%) AND moderate temp (15-30°C)
+    // WMO: 70-90% humidity = high humidity (precipitation potential)
     // High humidity = moisture in air = rainy conditions
-    if (hum > 70 && temp >= 15 && temp <= 30) {
+    if (hum >= 70 && hum <= 90 && temp >= 15 && temp <= 30) {
         return 'rainy';
     }
     
     // 6. Cloudy: Medium-high humidity (60-70%) AND moderate temp (15-30°C)
-    // Moderate humidity = cloudy but not necessarily raining
-    if (hum >= 60 && hum <= 70 && temp >= 15 && temp <= 30) {
+    // WMO: 60-70% = moderate-high humidity (cloudy but not necessarily raining)
+    if (hum >= 60 && hum < 70 && temp >= 15 && temp <= 30) {
         return 'cloudy';
     }
     
@@ -599,9 +885,16 @@ function computeWeatherCondition(temp, hum) {
     }
     
     // 8. Sunny: LOW humidity (<50%) AND moderate to high temp (>15°C)
+    // WMO: <50% humidity = low humidity (clear/dry conditions)
     // Low humidity = dry air = clear/sunny skies
     if (hum < 50 && temp > 15) {
         return 'sunny';
+    }
+    
+    // 9. High Pressure Clear: High pressure (>1020 hPa) indicates fair weather
+    // WMO: >1020 hPa = high pressure (stable/fair weather)
+    if (press !== null && press > 1020) {
+        return 'sunny';  // High pressure = clear/fair weather
     }
     
     // Default: Partly Cloudy (fallback for edge cases)
@@ -610,7 +903,7 @@ function computeWeatherCondition(temp, hum) {
 
 // Update weather display
 function updateWeather() {
-    const condition = computeWeatherCondition(currentTemp, currentHum);
+    const condition = computeWeatherCondition(currentTemp, currentHum, currentPressure, currentLight, currentRain, currentWindSpeed);
     
     // Update weather location (top label)
     if (weatherLocation) {
@@ -774,12 +1067,39 @@ function addDataPoint(type, value) {
         if (humidityData.length > maxDataPoints) {
             humidityData.shift();
         }
+    } else if (type === 'pressure') {
+        pressureData.push(value);
+        if (pressureData.length > maxDataPoints) {
+            pressureData.shift();
+        }
+    } else if (type === 'light') {
+        lightData.push(value);
+        if (lightData.length > maxDataPoints) {
+            lightData.shift();
+        }
+    } else if (type === 'rain') {
+        rainData.push(value);
+        if (rainData.length > maxDataPoints) {
+            rainData.shift();
+        }
+    } else if (type === 'windSpeed') {
+        windSpeedData.push(value);
+        if (windSpeedData.length > maxDataPoints) {
+            windSpeedData.shift();
+        }
+    } else if (type === 'windDirection') {
+        windDirectionData.push(value);
+        if (windDirectionData.length > maxDataPoints) {
+            windDirectionData.shift();
+        }
     }
     
-    // Update time labels (only when we have new data)
+    // Update time labels when we have new data
     // Use adaptive format: HH:MM when many points, HH:MM:SS when few
-    if (temperatureData.length === humidityData.length) {
-        const totalPoints = Math.max(temperatureData.length, humidityData.length);
+    const totalPoints = Math.max(temperatureData.length, humidityData.length, pressureData.length || 0, lightData.length || 0, rainData.length || 0, windSpeedData.length || 0, windDirectionData.length || 0);
+    
+    // Add time label if we have any new data
+    if (totalPoints > timeLabels.length) {
         const showSeconds = totalPoints <= 10; // Show seconds only when 10 or fewer points
         
         const timeLabel = now.toLocaleTimeString('en-US', { 
@@ -793,7 +1113,6 @@ function addDataPoint(type, value) {
         if (timeLabels.length > maxDataPoints) {
             timeLabels.shift();
         }
-        
     }
     
     // Update chart
