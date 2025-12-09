@@ -903,6 +903,62 @@ body {
     color: var(--text-tertiary);
 }
 
+.fan-controls {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: var(--space-2);
+    margin-top: var(--space-2);
+}
+
+.fan-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    padding: var(--space-3);
+    border-radius: 8px;
+    border: 1px solid var(--border-base);
+    background: var(--bg-hover);
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-base);
+}
+
+.fan-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
+.fan-btn:hover {
+    border-color: var(--border-hover);
+    background: var(--bg-active);
+    transform: translateY(-1px);
+}
+
+.fan-btn:active {
+    transform: translateY(0);
+}
+
+.fan-btn-on {
+    color: var(--accent-green);
+    border-color: rgba(63, 185, 80, 0.4);
+}
+
+.fan-btn-on:hover {
+    box-shadow: 0 4px 12px rgba(63, 185, 80, 0.15);
+}
+
+.fan-btn-off {
+    color: var(--accent-orange);
+    border-color: rgba(248, 81, 73, 0.35);
+}
+
+.fan-btn-off:hover {
+    box-shadow: 0 4px 12px rgba(248, 81, 73, 0.15);
+}
+
 .metric-value-group {
     display: flex;
     align-items: baseline;

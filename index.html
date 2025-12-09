@@ -332,6 +332,22 @@
                             <span id="fanStatusSubtext">Standby</span>
                         </div>
                     </div>
+                    <div class="fan-controls">
+                        <button id="fanOnBtn" class="fan-btn fan-btn-on">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="9 11 12 14 22 4"/>
+                                <path d="M21 12v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h11"/>
+                            </svg>
+                            <span>Turn Fan ON</span>
+                        </button>
+                        <button id="fanOffBtn" class="fan-btn fan-btn-off">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="18" y1="6" x2="6" y2="18"/>
+                                <line x1="6" y1="6" x2="18" y2="18"/>
+                            </svg>
+                            <span>Turn Fan OFF</span>
+                        </button>
+                    </div>
                 </div>
             </section>
 
@@ -388,9 +404,7 @@
                                 <div class="form-group" style="margin-bottom: 1.5rem;">
                                     <label class="form-label" style="margin-bottom: 0.75rem; font-size: 1rem;">Fan Activation Mode</label>
                                     <select id="fanMode" class="form-input" style="font-size: 1rem; padding: 1rem;">
-                                        <option value="very_hot">🌡️ Turn ON when Very HOT</option>
-                                        <option value="hot" selected>🌡️ Turn ON when HOT</option>
-                                        <option value="always_on">⚡ Always ON (regardless of temperature/humidity)</option>
+                                        <option value="hot" selected>🌡️ Automatic (heat / humidity)</option>
                                     </select>
                                     <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.5rem;">
                                         <span id="modeDescription">Fan turns on when temperature is high (&gt; 28°C) or humidity is high (&gt; 70%)</span>

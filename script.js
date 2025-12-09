@@ -30,6 +30,8 @@ const fanStatusDot = document.getElementById('fanStatusDot');
 const fanStatusText = document.getElementById('fanStatusText');
 const fanStatusSubtext = document.getElementById('fanStatusSubtext');
 const fanIcon = document.getElementById('fanIcon');
+const fanOnBtn = document.getElementById('fanOnBtn');
+const fanOffBtn = document.getElementById('fanOffBtn');
 const connectBtn = document.getElementById('connectBtn');
 const disconnectBtn = document.getElementById('disconnectBtn');
 const brokerUrlInput = document.getElementById('brokerUrl');
@@ -55,20 +57,10 @@ const currentHumSettings = document.getElementById('currentHumSettings');
 
 // Preset configurations based on weather conditions
 const fanModePresets = {
-    'very_hot': {
-        description: 'Fan turns on when weather is Hot & Dry or Sunny',
-        turnOnConditions: ['hot', 'sunny'],
-        turnOffConditions: ['cold']
-    },
     'hot': {
-        description: 'Fan turns on when weather is Hot & Dry, Sunny, or Partly Cloudy',
+        description: 'Fan turns on when weather is Hot/Sunny or humidity is muggy',
         turnOnConditions: ['hot', 'sunny', 'partly-cloudy'],
         turnOffConditions: ['cold']
-    },
-    'always_on': {
-        description: 'Fan stays on regardless of weather conditions',
-        turnOnConditions: ['always'],
-        turnOffConditions: []
     }
 };
 
@@ -84,6 +76,12 @@ let currentWindDirection = null;
 let fanAutoState = false;
 let activationTimer = null;
 let conditionMetSince = null;
+// Temperature-based fan hysteresis (PH-friendly)
+const FAN_TEMP_ON_THRESHOLD = 30;  // °C - turn on around mid of sunny/hot
+const FAN_TEMP_OFF_THRESHOLD = 29; // °C - turn off when it cools a bit
+// Humidity-based hysteresis (PH-friendly, muggy rooms)
+const FAN_HUM_ON_THRESHOLD = 80;  // %RH - turn on when very humid
+const FAN_HUM_OFF_THRESHOLD = 70; // %RH - turn off after dehumidifying a bit
 
 // Update timestamp (12-hour format with AM/PM for Philippines)
 function updateTimestamp() {
@@ -787,117 +785,67 @@ function updateWindDirection(value) {
     updateWeather();
 }
 
-// Compute weather condition based on temperature, humidity, pressure, light, rain, and wind
-// Based on real-world meteorological standards (WMO, NOAA, Davis Vantage Pro2):
-// - HIGH humidity (>90%) = Foggy (WMO standard: >90% for fog/dew)
-// - HIGH humidity (70-90%) = Rainy/Cloudy (moisture in air = precipitation potential)
-// - LOW humidity (<50%) = Sunny/Clear (dry air = clear skies)
-// - MEDIUM humidity (50-70%) = Partly Cloudy (transitional)
-// - VERY LOW pressure (<980 hPa) = Severe storm (WMO: <980 hPa = very unstable)
-// - LOW pressure (980-1000 hPa) = Stormy/Unstable weather
-// - NORMAL pressure (1000-1020 hPa) = Variable conditions
-// - HIGH pressure (>1020 hPa) = Stable/Clear weather (WMO: >1020 hPa = fair weather)
-// - LOW light (<20%) = Overcast/Cloudy conditions
-// - HIGH light (>80%) = Clear/Sunny conditions
-// - HIGH rain (>50%) = Rainy conditions (direct detection)
-// - HIGH wind speed (>15 m/s = Near Gale, Beaufort Scale) = Windy/Stormy conditions
+// Compute weather condition with Philippines-friendly thresholds
+// Emphasis: high ambient humidity, higher “comfortable cold”, and lighter rain trigger
 function computeWeatherCondition(temp, hum, press = null, light = null, rain = null, windSpeed = null) {
     if (temp === null || hum === null) {
         return 'unknown';
     }
     
-    // Priority order: most specific conditions first (based on meteorological standards)
-    
-    // 0. Rainy: High rain sensor reading (>50%) - direct rain detection
-    // Real-world: Rain sensor directly detects water presence
-    if (rain !== null && rain > 50) {
-        return 'rainy';  // Rain sensor detects water = rainy
-    }
-    
-    // 0.5. Severe Storm: Very low pressure (<980 hPa) - WMO standard for severe storms
-    if (press !== null && press < 980) {
-        return 'rainy';  // Very low pressure = severe stormy conditions
-    }
-    
-    // 0.6. Stormy: Low pressure (980-1000 hPa) - indicates unstable weather
-    // WMO: 980-1000 hPa = low pressure system (unstable/stormy)
-    if (press !== null && press >= 980 && press < 1000) {
-        return 'rainy';  // Low pressure = stormy/rainy conditions
-    }
-    
-    // 0.7. Windy/Stormy: High wind speed (>15 m/s = Near Gale, Beaufort Scale)
-    // Beaufort Scale: 15 m/s = Near Gale (13.9-17.2 m/s range)
-    if (windSpeed !== null && windSpeed > 15) {
-        return 'cloudy';  // High wind often associated with stormy/cloudy weather
-    }
-    
-    // 0.8. Overcast: Low light (<20%) - indicates cloudy/overcast
-    // Real-world: Low light levels indicate cloud cover
-    if (light !== null && light < 20) {
-        return 'cloudy';  // Low light = overcast conditions
-    }
-    
-    // 1. Foggy: Very high humidity (>90%) - WMO standard for fog/dew formation
-    // Updated from 85% to 90% based on meteorological standards
-    if (hum > 90) {
-        return 'foggy';
-    }
-    
-    // 2. Cold: Low temperature (<15°C) - temperature-based, regardless of humidity
-    if (temp < 15) {
-        return 'cold';
-    }
-    
-    // 3. Hot & Dry: High temp (>30°C) AND low humidity (<40%) - desert-like conditions
-    // Real-world: High temp + low humidity = hot and dry (desert conditions)
-    if (temp > 30 && hum < 40) {
-        return 'hot';
-    }
-    
-    // 3.5. Very Hot: Very high temp (>35°C) - extreme heat conditions
-    // WMO: >35°C = extreme heat (heat stroke risk)
-    if (temp > 35) {
-        return 'hot';  // Very hot conditions
-    }
-    
-    // 4. Hot & Humid: High temp (>30°C) AND high humidity (70-90%) - tropical/steamy
-    // Real-world: High temp + high humidity = tropical/steamy conditions
-    if (temp > 30 && hum >= 70 && hum <= 90) {
-        return 'cloudy'; // Hot and humid = overcast/cloudy, not rainy
-    }
-    
-    // 5. Rainy: HIGH humidity (70-90%) AND moderate temp (15-30°C)
-    // WMO: 70-90% humidity = high humidity (precipitation potential)
-    // High humidity = moisture in air = rainy conditions
-    if (hum >= 70 && hum <= 90 && temp >= 15 && temp <= 30) {
+    // 1) Direct rain detection (lower threshold for tropical showers)
+    if (rain !== null && rain > 25) {
         return 'rainy';
     }
     
-    // 6. Cloudy: Medium-high humidity (60-70%) AND moderate temp (15-30°C)
-    // WMO: 60-70% = moderate-high humidity (cloudy but not necessarily raining)
-    if (hum >= 60 && hum < 70 && temp >= 15 && temp <= 30) {
+    // 2) Low pressure stormy systems
+    if (press !== null && press < 1000) {
+        return 'rainy';
+    }
+    
+    // 3) Windy / near-gale
+    if (windSpeed !== null && windSpeed > 13) {
+        return 'cloudy'; // treat as stormy/overcast
+    }
+    
+    // 4) Foggy: very high humidity plus very low light
+    if (hum >= 95 && light !== null && light < 20) {
+        return 'foggy';
+    }
+    
+    // 5) Hot: typical PH “mainit” conditions
+    if (temp >= 35) {
+        return 'hot';
+    }
+    if (temp >= 32 && hum < 65) {
+        return 'hot';
+    }
+    
+    // 6) Rainy by humidity + pressure combo
+    if (hum >= 85 && (press !== null && press < 1005)) {
+        return 'rainy';
+    }
+    
+    // 7) Overcast/Cloudy bands
+    if ((hum >= 75 && hum < 90) || (light !== null && light < 40)) {
         return 'cloudy';
     }
     
-    // 7. Partly Cloudy: Medium humidity (50-60%) - transitional conditions
-    if (hum >= 50 && hum < 60) {
+    // 8) Partly cloudy band
+    if ((hum >= 60 && hum < 75) || (light !== null && light >= 40 && light <= 70)) {
         return 'partly-cloudy';
     }
     
-    // 8. Sunny: LOW humidity (<50%) AND moderate to high temp (>15°C)
-    // WMO: <50% humidity = low humidity (clear/dry conditions)
-    // Low humidity = dry air = clear/sunny skies
-    if (hum < 50 && temp > 15) {
+    // 9) Sunny/Clear for humid tropics: allow higher RH
+    if (temp >= 28 && hum < 70 && (light === null || light > 70) && (rain === null || rain <= 10)) {
         return 'sunny';
     }
     
-    // 9. High Pressure Clear: High pressure (>1020 hPa) indicates fair weather
-    // WMO: >1020 hPa = high pressure (stable/fair weather)
-    if (press !== null && press > 1020) {
-        return 'sunny';  // High pressure = clear/fair weather
+    // 10) Mild/cool for PH
+    if (temp < 22) {
+        return 'cold';
     }
     
-    // Default: Partly Cloudy (fallback for edge cases)
+    // Fallback
     return 'partly-cloudy';
 }
 
@@ -1230,40 +1178,27 @@ function checkAutomation() {
         return;
     }
     
-    // Always ON mode - works even without sensor data
-    if (mode === 'always_on') {
-        if (!fanAutoState) {
-            const delay = 1000; // 1 second delay for noise filtering
-            if (conditionMetSince === null) {
-                conditionMetSince = Date.now();
-                if (activationTimer) {
-                    clearTimeout(activationTimer);
-                }
-                activationTimer = setTimeout(() => {
-                    if (!fanAutoState && automationActive) {
-                        console.log('Automation: Activating fan (Always ON mode)');
-                        sendFanCommand('ON', true);
-                    }
-                }, delay);
-            }
-        }
-        return;
-    }
-
     // For other modes, require sensor data to compute weather condition
     if (currentTemp === null || currentHum === null) {
         return;
     }
 
     // Get current weather condition
-    const weatherCondition = computeWeatherCondition(currentTemp, currentHum);
+    const weatherCondition = computeWeatherCondition(currentTemp, currentHum, currentPressure, currentLight, currentRain, currentWindSpeed);
     console.log(`🌤️ Automation check: mode=${mode}, weather=${weatherCondition}, temp=${currentTemp}°C, hum=${currentHum}%, fanState=${fanAutoState}`);
 
+    // Temperature-based trigger (mid between sunny/hot)
+    const tempHot = currentTemp !== null && currentTemp >= FAN_TEMP_ON_THRESHOLD;
+    const tempCool = currentTemp !== null && currentTemp <= FAN_TEMP_OFF_THRESHOLD;
+    // Humidity-based trigger (sticky/muggy air)
+    const humMuggy = currentHum !== null && currentHum >= FAN_HUM_ON_THRESHOLD;
+    const humComfort = currentHum !== null && currentHum <= FAN_HUM_OFF_THRESHOLD;
+
     // Check if weather condition should turn fan ON
-    const shouldTurnOn = preset.turnOnConditions.includes(weatherCondition) || preset.turnOnConditions.includes('always');
+    const shouldTurnOn = tempHot || humMuggy || preset.turnOnConditions.includes(weatherCondition) || preset.turnOnConditions.includes('always');
     
     // Check if weather condition should turn fan OFF
-    const shouldTurnOff = preset.turnOffConditions.includes(weatherCondition);
+    const shouldTurnOff = tempCool || humComfort || preset.turnOffConditions.includes(weatherCondition);
     
     console.log(`🔍 Should turn ON: ${shouldTurnOn} (weather: ${weatherCondition}), Should turn OFF: ${shouldTurnOff}, Current fan state: ${fanAutoState}`);
 
@@ -1333,6 +1268,19 @@ if (connectBtn) {
 if (disconnectBtn) {
     disconnectBtn.addEventListener('click', () => {
         disconnectFromMQTT();
+    });
+}
+
+// Manual fan controls
+if (fanOnBtn) {
+    fanOnBtn.addEventListener('click', () => {
+        sendFanCommand('ON', false);
+    });
+}
+
+if (fanOffBtn) {
+    fanOffBtn.addEventListener('click', () => {
+        sendFanCommand('OFF', false);
     });
 }
 

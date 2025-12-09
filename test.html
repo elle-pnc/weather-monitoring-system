@@ -176,6 +176,32 @@
             color: var(--text-primary);
             font-family: var(--font-mono);
         }
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.35rem 0.75rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            background: var(--bg-hover);
+            border: 1px solid var(--border-base);
+            color: var(--text-secondary);
+        }
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.35rem 0.6rem;
+            border-radius: 999px;
+            background: rgba(88, 166, 255, 0.12);
+            color: var(--accent-blue);
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .pill.closeable {
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -215,6 +241,34 @@
             <div class="btn-group">
                 <button class="btn btn-primary" id="connectBtn">Connect</button>
                 <button class="btn btn-secondary" id="disconnectBtn">Disconnect</button>
+            </div>
+        </div>
+
+        <!-- Live MQTT Subscribe -->
+        <div class="test-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                <div>
+                    <h2 style="margin-bottom: 0.35rem;">📡 Live MQTT Subscribe</h2>
+                    <p style="color: var(--text-secondary); font-size: 0.85rem;">Subscribe to topics and view incoming messages</p>
+                </div>
+                <div class="badge" id="subscribeStatus">No subscriptions</div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Subscribe Topic</label>
+                    <input type="text" id="subscribeTopic" class="form-input" value="weather/#" placeholder="e.g. weather/#">
+                </div>
+                <div class="form-group" style="display: flex; align-items: flex-end; gap: 0.75rem;">
+                    <button class="btn btn-primary" id="subscribeBtn">Subscribe</button>
+                    <button class="btn btn-danger" id="unsubscribeBtn">Unsubscribe</button>
+                </div>
+            </div>
+            <div style="margin-top: 0.75rem; display: flex; gap: 0.5rem; flex-wrap: wrap;" id="subscriptionList"></div>
+            <div style="margin-top: 1rem;">
+                <h3 style="color: var(--text-primary); font-size: 1rem; margin-bottom: 0.5rem;">Incoming Messages</h3>
+                <div class="log-area" id="subscribeLog">
+                    <div class="log-entry info">Waiting for MQTT messages...</div>
+                </div>
             </div>
         </div>
 
@@ -398,6 +452,13 @@
         const stopAutoBtn = document.getElementById('stopAutoBtn');
         const logArea = document.getElementById('logArea');
         const clearLogBtn = document.getElementById('clearLogBtn');
+        const subscribeTopicInput = document.getElementById('subscribeTopic');
+        const subscribeBtn = document.getElementById('subscribeBtn');
+        const unsubscribeBtn = document.getElementById('unsubscribeBtn');
+        const subscriptionList = document.getElementById('subscriptionList');
+        const subscribeLog = document.getElementById('subscribeLog');
+        const subscribeStatus = document.getElementById('subscribeStatus');
+        const activeSubscriptions = new Set();
 
         // Logging function
         function addLog(message, type = 'info') {
@@ -424,6 +485,87 @@
                 disconnectBtn.disabled = true;
                 stopAutoSend();
             }
+        }
+
+        // Subscribe to a topic
+        function subscribeTopic(topic) {
+            const cleanTopic = topic.trim();
+            if (!mqttClient || !isConnected) {
+                addLog('❌ Connect before subscribing', 'error');
+                return;
+            }
+            if (!cleanTopic) {
+                addLog('❌ Topic is required to subscribe', 'error');
+                return;
+            }
+            mqttClient.subscribe(cleanTopic, { qos: 0 }, (err) => {
+                if (err) {
+                    addLog(`❌ Failed to subscribe to ${cleanTopic}: ${err.message}`, 'error');
+                } else {
+                    activeSubscriptions.add(cleanTopic);
+                    renderSubscriptions();
+                    addLog(`✅ Subscribed to ${cleanTopic}`, 'success');
+                    addSubscribeLog(`📡 Subscribed to ${cleanTopic}`, 'info');
+                }
+            });
+        }
+
+        // Unsubscribe from a topic
+        function unsubscribeTopic(topic) {
+            const cleanTopic = topic.trim();
+            if (!mqttClient || !isConnected) {
+                addLog('❌ Connect before unsubscribing', 'error');
+                return;
+            }
+            if (!cleanTopic) {
+                addLog('❌ Topic is required to unsubscribe', 'error');
+                return;
+            }
+            mqttClient.unsubscribe(cleanTopic, (err) => {
+                if (err) {
+                    addLog(`❌ Failed to unsubscribe from ${cleanTopic}: ${err.message}`, 'error');
+                } else {
+                    activeSubscriptions.delete(cleanTopic);
+                    renderSubscriptions();
+                    addLog(`✅ Unsubscribed from ${cleanTopic}`, 'success');
+                    addSubscribeLog(`🚫 Unsubscribed from ${cleanTopic}`, 'info');
+                }
+            });
+        }
+
+        // Render active subscriptions pills
+        function renderSubscriptions() {
+            subscriptionList.innerHTML = '';
+            if (activeSubscriptions.size === 0) {
+                subscribeStatus.textContent = 'No subscriptions';
+                subscribeStatus.className = 'badge';
+                return;
+            }
+            subscribeStatus.textContent = `${activeSubscriptions.size} active`;
+            subscribeStatus.className = 'badge';
+            activeSubscriptions.forEach(topic => {
+                const pill = document.createElement('span');
+                pill.className = 'pill closeable';
+                pill.textContent = topic;
+                pill.title = 'Click to unsubscribe';
+                pill.addEventListener('click', () => unsubscribeTopic(topic));
+                subscriptionList.appendChild(pill);
+            });
+        }
+
+        // Append to subscribe log
+        function addSubscribeLog(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry ${type}`;
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            subscribeLog.appendChild(logEntry);
+            subscribeLog.scrollTop = subscribeLog.scrollHeight;
+        }
+
+        // Handle incoming messages
+        function handleIncomingMessage(topic, payload) {
+            addSubscribeLog(`📥 ${topic}: ${payload.toString()}`, 'info');
         }
 
         // Connect to MQTT
@@ -466,6 +608,12 @@
                 mqttClient.on('connect', () => {
                     addLog('✅ Connected to MQTT broker', 'success');
                     updateConnectionStatus(true);
+                    // Attach message listener
+                    mqttClient.on('message', handleIncomingMessage);
+                    // Auto-subscribe to current input value
+                    if (subscribeTopicInput.value.trim()) {
+                        subscribeTopic(subscribeTopicInput.value.trim());
+                    }
                 });
 
                 mqttClient.on('error', (error) => {
@@ -476,11 +624,15 @@
                 mqttClient.on('close', () => {
                     addLog('Connection closed', 'info');
                     updateConnectionStatus(false);
+                    activeSubscriptions.clear();
+                    renderSubscriptions();
                 });
 
                 mqttClient.on('offline', () => {
                     addLog('Client offline', 'info');
                     updateConnectionStatus(false);
+                    activeSubscriptions.clear();
+                    renderSubscriptions();
                 });
 
             } catch (error) {
@@ -865,6 +1017,8 @@
             logArea.innerHTML = '';
             addLog('Log cleared', 'info');
         });
+        subscribeBtn.addEventListener('click', () => subscribeTopic(subscribeTopicInput.value));
+        unsubscribeBtn.addEventListener('click', () => unsubscribeTopic(subscribeTopicInput.value));
 
         // Weather scenario button listeners
         document.getElementById('scenarioRainy').addEventListener('click', () => applyWeatherScenario('rainy'));
@@ -901,6 +1055,7 @@
             addLog('Test publisher initialized', 'info');
             addLog('💡 Tip: Click weather scenario buttons to test each condition', 'info');
             updateConnectionStatus(false);
+            renderSubscriptions();
         });
     </script>
 </body>
