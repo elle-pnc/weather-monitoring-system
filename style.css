@@ -380,7 +380,7 @@ body {
 .metrics-grid {
     display: grid;
     grid-template-columns: 1.5fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr;
-    grid-template-rows: 1fr 1fr;
+    grid-template-rows: 1fr 1fr; /* two rows */
     gap: var(--space-2);
     margin-bottom: var(--space-2);
     padding: var(--space-3) var(--space-6);
@@ -565,7 +565,7 @@ body {
 
 .fan-card {
     grid-row: 2;
-    grid-column: 1 / 9;
+    grid-column: 2 / 9;
 }
 
 .metric-card::before {
@@ -757,7 +757,7 @@ body {
 
 /* Weather time (center) - large digital clock style */
 .weather-time {
-    font-size: 3.5rem;
+    font-size: 3rem;
     font-weight: 600;
     color: var(--text-primary);
     font-family: var(--font-mono);
@@ -1025,8 +1025,8 @@ body {
 
 .chart-container {
     background: var(--bg-elevated);
-    border: 1px solid var(--border-base);
-    border-radius: 12px;
+    border: 0.5px solid var(--border-base);
+    border-radius: 6px;
     padding: var(--space-4);
     flex: 1;
     min-height: 0;
